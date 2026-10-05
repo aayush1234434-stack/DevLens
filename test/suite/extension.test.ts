@@ -2,6 +2,7 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { analyzeCode } from '../../src/analyzer';
 import { CoachingProfile, defaultCoachingProfile } from '../../src/coachingProfile';
+import { validateMentorReview } from '../../src/mentorReview';
 import { renderPanel } from '../../src/panel';
 import { captureReviewContext, ReviewContext } from '../../src/reviewContext';
 
@@ -18,6 +19,9 @@ suite('DevLens extension shell', () => {
 		assert.ok(commands.includes('devlens.configureCoachingProfile'));
 		assert.ok(commands.includes('devlens.toggleCoachingProfile'));
 		assert.ok(commands.includes('devlens.clearCoachingProfile'));
+		assert.ok(commands.includes('devlens.setOpenAIKey'));
+		assert.ok(commands.includes('devlens.removeOpenAIKey'));
+		assert.ok(commands.includes('devlens.toggleOpenAIReviews'));
 	});
 
 	test('captures exactly the selected source and range', async () => {
@@ -78,6 +82,35 @@ suite('DevLens extension shell', () => {
 		assert.match(html, /line 5/);
 		assert.match(html, /&lt;unsafe&gt;/);
 		assert.doesNotMatch(html, /<unsafe>/);
+	});
+
+	test('renders provider evidence with why-this and not-applicable controls safely', () => {
+		const code = 'fetch("/users").then(parse);';
+		const context: ReviewContext = {
+			mode: 'selection', scope: 'selection', code, fileName: 'client.js', languageId: 'javascript',
+			startLine: 2, endLine: 2, truncated: false
+		};
+		const review = validateMentorReview({
+			formatVersion: 1,
+			strengths: [],
+			suggestions: [{
+				category: 'error-handling', title: '<script>unsafe</script>', evidence: 'fetch("/users").then(parse);',
+				what: 'The promise chain does not show an error path.', whyItMatters: 'Failures may be easy to miss.',
+				whyThis: 'This is the only network operation in this example.', action: 'Add an explicit rejection path.', confidence: 'medium'
+			}],
+			takeaway: 'Make failure behavior visible.'
+		}, code, analyzeCode('javascript', code));
+		const html = renderPanel({
+			kind: 'ready', context, analysis: analyzeCode('javascript', code),
+			coachingProfile: defaultCoachingProfile, profileEnabled: false, mentorReview: review, providerStatus: 'completed'
+		});
+		assert.match(html, /OpenAI mentor review/);
+		assert.match(html, /Why this\?/);
+		assert.match(html, /Not applicable/);
+		assert.match(html, /data-not-applicable="openai-suggestion-0"/);
+		assert.match(html, /&lt;script&gt;unsafe&lt;\/script&gt;/);
+		assert.doesNotMatch(html, /<script>unsafe<\/script>/);
+		assert.match(html, /script-src 'nonce-/);
 	});
 
 	test('expands a partial JavaScript selection to its function and keeps Python exact', async () => {

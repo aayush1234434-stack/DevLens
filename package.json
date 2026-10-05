@@ -16,7 +16,10 @@
     "onCommand:devlens.openSettings",
     "onCommand:devlens.configureCoachingProfile",
     "onCommand:devlens.toggleCoachingProfile",
-    "onCommand:devlens.clearCoachingProfile"
+    "onCommand:devlens.clearCoachingProfile",
+    "onCommand:devlens.setOpenAIKey",
+    "onCommand:devlens.removeOpenAIKey",
+    "onCommand:devlens.toggleOpenAIReviews"
   ],
   "contributes": {
     "commands": [
@@ -49,6 +52,21 @@
         "command": "devlens.clearCoachingProfile",
         "title": "DevLens: Clear Coaching Profile",
         "category": "DevLens"
+      },
+      {
+        "command": "devlens.setOpenAIKey",
+        "title": "DevLens: Set OpenAI API Key",
+        "category": "DevLens"
+      },
+      {
+        "command": "devlens.removeOpenAIKey",
+        "title": "DevLens: Remove OpenAI API Key",
+        "category": "DevLens"
+      },
+      {
+        "command": "devlens.toggleOpenAIReviews",
+        "title": "DevLens: Toggle OpenAI Reviews",
+        "category": "DevLens"
       }
     ],
     "configuration": {
@@ -65,6 +83,16 @@
           "enum": ["concise", "detailed"],
           "default": "concise",
           "description": "Choose whether DevLens explanations should be concise or more detailed."
+        },
+        "devlens.allowOpenAIReview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow DevLens to ask for explicit consent before sending a review to OpenAI. When disabled, all reviews remain local."
+        },
+        "devlens.openAIModel": {
+          "type": "string",
+          "default": "gpt-6-astra",
+          "description": "OpenAI API model used when remote review is enabled and explicitly approved."
         }
       }
     }
@@ -72,7 +100,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js",
+    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/openAiProvider.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
     "vscode:prepublish": "npm run compile"
   },

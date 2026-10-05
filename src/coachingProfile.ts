@@ -44,5 +44,5 @@ export function hasCoachingProfile(profile: CoachingProfile): boolean {
 }
 
 function normalizeText(value: unknown, maximumLength: number): string {
-	return typeof value === 'string' ? value.trim().slice(0, maximumLength) : '';
+	return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, maximumLength) : '';
 }
