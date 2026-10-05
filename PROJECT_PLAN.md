@@ -113,7 +113,7 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Meaningful review findings, provider calls, persistent review history, and skill profiles.
 
-**Status:** Planned.
+**Status:** Implemented. `npm run test:unit` passes 12 tests, including AST boundaries, fallback behavior, truncation, and profile values; the command also compiles the full TypeScript project. Extension-host verification remains unavailable in this desktop environment: an installed VS Code host previously exited with `SIGABRT`, and the latest run did not finish launching. `npm pack --dry-run` was blocked by an `EPERM` error in the npm cache, so VSIX/package validation remains unverified.
 
 ### Phase 3 — Reliable local code checks
 
@@ -131,7 +131,7 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Personalization over time, a broad lint ruleset, automated fixes, exhaustive per-language adapter coverage, and claims of equal quality across all languages before evaluation.
 
-**Status:** Planned.
+**Status:** Implemented (2026-10-05). The local analyzer now has a typed adapter interface and a JavaScript/TypeScript AST adapter. Current checks are direct `eval` risk, empty `catch` maintainability, and explicit TypeScript function contracts as a grounded strength. Findings are bounded, stable, range-validated, and labeled with confidence/provenance. Python and all other languages intentionally use the no-claims generic fallback until a verified parser/check set is added. `npm run test:unit` passes all 19 unit tests and compiles the full TypeScript project. Extension Host smoke verification remains unverified: `npm test` started but produced no output for about one minute in this environment, so it was interrupted.
 
 ### Phase 4 — Evidence-grounded mentor review
 

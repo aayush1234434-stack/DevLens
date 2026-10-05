@@ -13,7 +13,10 @@
   "activationEvents": [
     "onCommand:devlens.reviewCurrentFile",
     "onCommand:devlens.reviewSelection",
-    "onCommand:devlens.openSettings"
+    "onCommand:devlens.openSettings",
+    "onCommand:devlens.configureCoachingProfile",
+    "onCommand:devlens.toggleCoachingProfile",
+    "onCommand:devlens.clearCoachingProfile"
   ],
   "contributes": {
     "commands": [
@@ -30,6 +33,21 @@
       {
         "command": "devlens.openSettings",
         "title": "DevLens: Open Settings",
+        "category": "DevLens"
+      },
+      {
+        "command": "devlens.configureCoachingProfile",
+        "title": "DevLens: Configure Coaching Profile",
+        "category": "DevLens"
+      },
+      {
+        "command": "devlens.toggleCoachingProfile",
+        "title": "DevLens: Toggle Coaching Profile",
+        "category": "DevLens"
+      },
+      {
+        "command": "devlens.clearCoachingProfile",
+        "title": "DevLens: Clear Coaching Profile",
         "category": "DevLens"
       }
     ],
@@ -54,7 +72,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test:unit": "npm run compile && node --test ./out/test/capture.test.js",
+    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
     "vscode:prepublish": "npm run compile"
   },
@@ -63,7 +81,9 @@
     "@types/node": "^22.15.30",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.5.2",
-    "mocha": "^12.0.3",
+    "mocha": "^12.0.3"
+  },
+  "dependencies": {
     "typescript": "^5.8.3"
   }
 }
