@@ -2,7 +2,7 @@
 
 ## Project direction
 
-Read `PROJECT_PLAN.md` before making product changes. This project is a VS Code mentor extension for individual JavaScript and TypeScript developers. The MVP is a focused review of a selected TypeScript function that produces a few specific, evidence-backed suggestions in a panel. Preserve the planned phase boundaries: implement only the phase the user requests, and do not quietly start later-phase work.
+Read `PROJECT_PLAN.md` before making product changes. This project is a language-agnostic VS Code mentor extension for individual developers. The MVP aims to review code in any programming language VS Code can open as text, with review depth depending on available language-aware analysis. Preserve the planned phase boundaries: implement only the phase the user requests, and do not quietly start later-phase work.
 
 At the start of each implementation phase:
 
@@ -15,7 +15,7 @@ Preserve unrelated user changes. Do not overwrite existing work just to match a 
 
 ## Product and feedback conventions
 
-- Support JavaScript and TypeScript first. Do not add other languages, team features, social features, a large account system, or a backend unless the user explicitly changes scope.
+- Accept code in any language VS Code exposes as a text document. Carry VS Code's language ID through review context. Add language-specific parsers and local checks incrementally; do not claim equal analysis depth for every language until verified. Do not add team features, social features, a large account system, or a backend unless the user explicitly changes scope.
 - Make findings specific to the submitted code and anchor each claim to a valid source range or other inspectable evidence.
 - Keep feedback concise, constructive, and actionable. Explain what could improve, why it matters, and one possible improvement.
 - Distinguish correctness risks from maintainability suggestions and subjective style preferences. Never frame a preference as a definite bug.
@@ -28,7 +28,7 @@ Preserve unrelated user changes. Do not overwrite existing work just to match a 
 
 - Keep editor integration, source extraction, local analysis, optional provider calls, feedback validation, presentation, and storage separated behind small typed interfaces.
 - Prefer TypeScript and the stable VS Code API for the declared engine range. Check current official API documentation when selecting APIs or dependencies that may have changed.
-- Use syntax-aware parsing such as the TypeScript compiler API for source boundaries and evidence. Avoid brittle text/brace heuristics for code structure.
+- Use syntax-aware parsing for language-specific source boundaries and evidence when an adapter exists. Keep a safe selection-based fallback for other languages. Avoid brittle text/brace heuristics for code structure.
 - Define and validate a versioned feedback schema at provider and Webview boundaries. Validate ranges against the reviewed source.
 - Keep local checks deterministic, narrow, and conservative. Do not recreate an entire linter or dump existing diagnostics without a clear teaching benefit.
 - Make Webview output safe: escape untrusted content, use a restrictive Content Security Policy, validate every message, and expose only the minimum extension capabilities.

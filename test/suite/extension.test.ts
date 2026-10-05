@@ -31,7 +31,7 @@ suite('DevLens extension shell', () => {
 		}
 	});
 
-	test('handles empty selection, empty file, and unsupported file safely', async () => {
+	test('handles empty selection and empty file safely', async () => {
 		const emptySelectionDoc = await vscode.workspace.openTextDocument({ language: 'typescript', content: 'const x = 1;' });
 		const emptySelection = captureReviewContext(emptySelectionDoc, new vscode.Selection(0, 0, 0, 0), 'selection');
 		assert.strictEqual(emptySelection.ok, false);
@@ -41,13 +41,13 @@ suite('DevLens extension shell', () => {
 		assert.strictEqual(emptyFile.ok, false);
 		if (!emptyFile.ok) assert.match(emptyFile.message, /empty/i);
 
-		const unsupportedDoc = await vscode.workspace.openTextDocument({ language: 'json', content: '{"safe": true}' });
-		const unsupported = captureReviewContext(unsupportedDoc, new vscode.Selection(0, 0, 0, 0), 'file');
-		assert.strictEqual(unsupported.ok, false);
-		if (!unsupported.ok) assert.match(unsupported.message, /supports JavaScript and TypeScript/i);
+		const pythonDoc = await vscode.workspace.openTextDocument({ language: 'python', content: 'def greet(name):\n    return f"hello {name}"' });
+		const python = captureReviewContext(pythonDoc, new vscode.Selection(0, 0, 0, 0), 'file');
+		assert.strictEqual(python.ok, true);
+		if (python.ok) assert.strictEqual(python.context.languageId, 'python');
 	});
 
-	test('review commands open their panel without throwing for empty and unsupported documents', async () => {
+	test('review command opens its panel for an arbitrary language and empty files safely', async () => {
 		const hasReviewPanel = () => vscode.window.tabGroups.all
 			.flatMap(group => group.tabs)
 			.some(tab => tab.label.startsWith('DevLens Review'));
@@ -56,8 +56,9 @@ suite('DevLens extension shell', () => {
 		await vscode.commands.executeCommand('devlens.reviewCurrentFile');
 		assert.ok(hasReviewPanel(), 'Review Current File should open the DevLens panel');
 
-		const unsupportedDocument = await vscode.workspace.openTextDocument({ language: 'json', content: '{"safe": true}' });
-		await vscode.window.showTextDocument(unsupportedDocument);
-		await vscode.commands.executeCommand('devlens.reviewSelection');
+		const pythonDocument = await vscode.workspace.openTextDocument({ language: 'python', content: 'print("hello")' });
+		await vscode.window.showTextDocument(pythonDocument);
+		await vscode.commands.executeCommand('devlens.reviewCurrentFile');
+		assert.ok(hasReviewPanel(), 'Review Current File should open the panel for Python');
 	});
 });

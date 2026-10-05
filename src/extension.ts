@@ -15,7 +15,7 @@ export function activate(context: vscode.ExtensionContext): void {
 async function review(mode: ReviewMode): Promise<void> {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) {
-		showReviewPanel({ kind: 'error', message: 'Open a JavaScript or TypeScript file before starting a review.' });
+		showReviewPanel({ kind: 'error', message: 'Open a code or text file before starting a review.' });
 		return;
 	}
 

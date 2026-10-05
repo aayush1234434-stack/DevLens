@@ -16,6 +16,7 @@ export interface ReviewContext {
 	mode: ReviewMode;
 	code: string;
 	fileName: string;
+	languageId: string;
 	startLine: number;
 	endLine: number;
 }
@@ -24,7 +25,6 @@ export type ReviewContextResult =
 	| { ok: true; context: ReviewContext }
 	| { ok: false; message: string };
 
-const supportedLanguages = new Set(['javascript', 'javascriptreact', 'typescript', 'typescriptreact']);
 const maximumReviewCharacters = 50_000;
 
 export function captureReviewContext(
@@ -32,16 +32,12 @@ export function captureReviewContext(
 	selection: TextSelection,
 	mode: ReviewMode
 ): ReviewContextResult {
-	if (!supportedLanguages.has(document.languageId)) {
-		return { ok: false, message: 'DevLens currently supports JavaScript and TypeScript files.' };
-	}
-
 	const code = mode === 'selection' ? document.getText(selection) : document.getText();
 	if (code.trim().length === 0) {
 		return {
 			ok: false,
 			message: mode === 'selection'
-				? 'Select some JavaScript or TypeScript code to review.'
+				? 'Select some code to review.'
 				: 'This file is empty, so there is no code to review.'
 		};
 	}
@@ -61,6 +57,7 @@ export function captureReviewContext(
 			mode,
 			code,
 			fileName: document.uri.path.split('/').pop() || 'Untitled',
+			languageId: document.languageId,
 			startLine,
 			endLine
 		}

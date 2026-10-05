@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { captureReviewContext, ReviewDocument, TextSelection } from '../src/reviewContext';
 
-function document(languageId: string, content: string): ReviewDocument {
+function document(languageId: string, content: string, filePath = '/workspace/example.ts'): ReviewDocument {
 	const lines = content.split('\n');
 	return {
 		languageId,
 		lineCount: content.length === 0 ? 1 : lines.length,
-		uri: { path: '/workspace/example.ts' },
+		uri: { path: filePath },
 		getText(range?: TextSelection): string {
 			if (!range) return content;
 			if (range.start.line === range.end.line && range.start.character === range.end.character) return '';
@@ -31,6 +31,7 @@ test('captures the exact selected code and line range', () => {
 	assert.equal(result.context.startLine, 1);
 	assert.equal(result.context.endLine, 3);
 	assert.equal(result.context.fileName, 'example.ts');
+	assert.equal(result.context.languageId, 'typescript');
 });
 
 test('captures the complete current file', () => {
@@ -66,11 +67,20 @@ test('rejects empty selection and empty file with useful messages', () => {
 	if (!emptyFile.ok) assert.match(emptyFile.message, /file is empty/i);
 });
 
-test('rejects unsupported languages and oversized review context', () => {
+test('captures code from different language IDs and rejects oversized review context', () => {
 	const selection: TextSelection = { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } };
-	const unsupported = captureReviewContext(document('json', '{"safe": true}'), selection, 'file');
-	assert.equal(unsupported.ok, false);
-	if (!unsupported.ok) assert.match(unsupported.message, /supports JavaScript and TypeScript/i);
+	for (const [languageId, filePath, source] of [
+		['python', '/workspace/app.py', 'x = 1'],
+		['cpp', '/workspace/main.cpp', 'int main() { return 0; }'],
+		['rust', '/workspace/main.rs', 'fn main() {}']
+	]) {
+		const result = captureReviewContext(document(languageId, source, filePath), selection, 'file');
+		assert.equal(result.ok, true, `${languageId} should be accepted`);
+		if (result.ok) {
+			assert.equal(result.context.languageId, languageId);
+			assert.equal(result.context.fileName, filePath.split('/').pop());
+		}
+	}
 
 	const oversized = captureReviewContext(document('typescript', 'x'.repeat(50_001)), selection, 'file');
 	assert.equal(oversized.ok, false);

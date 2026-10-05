@@ -1,7 +1,7 @@
 {
   "name": "devlens",
   "displayName": "DevLens",
-  "description": "A thoughtful, personalized code review mentor for JavaScript and TypeScript.",
+  "description": "A thoughtful, personalized code review mentor for developers working in any language.",
   "version": "0.0.1",
   "publisher": "devlens",
   "license": "MIT",

@@ -23,7 +23,7 @@ export function renderPanel(state: PanelState): string {
 		: state.kind === 'error'
 			? `<p class="status error" role="alert">${escapeHtml(state.message)}</p>`
 			: `<p class="status" role="status">Code captured locally. Review analysis will be added in a later phase.</p>
-<p class="meta">${escapeHtml(state.context.fileName)} · ${state.context.mode === 'selection' ? 'Selected lines' : 'Current file'} ${state.context.startLine + 1}–${state.context.endLine + 1}</p>
+<p class="meta">${escapeHtml(state.context.fileName)} · ${escapeHtml(state.context.languageId)} · ${state.context.mode === 'selection' ? 'Selected lines' : 'Current file'} ${state.context.startLine + 1}–${state.context.endLine + 1}</p>
 <pre><code>${escapeHtml(state.context.code)}</code></pre>`;
 
 	return `<!DOCTYPE html>
