@@ -25,7 +25,6 @@
   "categories": ["Education", "Other"],
   "keywords": ["code review", "coding mentor", "learning", "feedback", "practice"],
   "main": "./out/src/extension.js",
-  "files": ["out/src/**/*.js", "media/icon.png", "README.md", "LICENSE", "CHANGELOG.md", "PRIVACY.md", "SUPPORT.md"],
   "activationEvents": [
     "onCommand:devlens.reviewCurrentFile",
     "onCommand:devlens.reviewSelection",

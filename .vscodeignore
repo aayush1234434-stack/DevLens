@@ -1,9 +1,11 @@
 .git/**
+.gitignore
 .vscode/**
 src/**
 test/**
 out/test/**
 **/*.js.map
+tsconfig.json
 *.vsix
 AGENTS.md
 PROJECT_PLAN.md
