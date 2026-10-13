@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, memory, practice, 'file')),
 		vscode.commands.registerCommand('devlens.reviewSelection', () => review(context, memory, practice, 'selection')),
 		vscode.commands.registerCommand('devlens.openSettings', () =>
-			vscode.commands.executeCommand('workbench.action.openSettings', '@ext:devlens.devlens')
+			vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${context.extension.id}`)
 		),
 		vscode.commands.registerCommand('devlens.configureCoachingProfile', async () => { await configureCoachingProfile(context, memory); skillProfile.refresh(); }),
 		vscode.commands.registerCommand('devlens.toggleCoachingProfile', async () => { await toggleCoachingProfile(context); skillProfile.refresh(); }),

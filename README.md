@@ -45,12 +45,13 @@ Use **Mark practiced**, **Pause**, **Resume**, **Complete**, **Not relevant**, o
 
 ## Settings
 
-Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:devlens.devlens` to choose explanation depth/style, allow per-review OpenAI consent prompts, and change the OpenAI API model. Manage your coaching profile, mentor memory, and OpenAI key from the Command Palette using the commands above.
+Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:AayushSingh1713.devlens` to choose explanation depth/style, allow per-review OpenAI consent prompts, and change the OpenAI API model. Manage your coaching profile, mentor memory, and OpenAI key from the Command Palette using the commands above.
 
 ## Verify
 
 - `npm run compile` — compile the extension and tests.
 - `npm run test:unit` — verify function-aware capture, local checks, feedback validation, mocked OpenAI requests, consent gating, coaching-profile normalization, mentor-memory controls, skill-profile aggregation, and practice lifecycle/comparison without launching VS Code or sending code externally.
-- `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` — run extension-host tests using an installed VS Code build. If the variable is omitted, the test runner downloads a stable VS Code build.
+- `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` — run extension-host tests using an installed VS Code build. If the variable is omitted, the test runner downloads a stable VS Code build. On macOS, run this from a normal desktop session. A background agent can abort VS Code inside AppKit before DevLens starts.
+- `npm run evaluate:live` — send the synthetic paired-review fixtures to OpenAI. Requires `OPENAI_API_KEY` in that terminal.
 
 On macOS, the command-line executable path is commonly `/Applications/Visual Studio Code.app/Contents/MacOS/Code`.

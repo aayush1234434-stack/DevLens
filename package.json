@@ -135,6 +135,7 @@
     "watch": "tsc -watch -p .",
     "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/skillProfile.test.js ./out/test/practiceLoop.test.js ./out/test/openAiProvider.test.js ./out/test/releaseEvaluation.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
+    "evaluate:live": "npm run compile && node ./out/test/liveProviderEvaluation.js",
     "vscode:prepublish": "npm run compile"
   },
   "devDependencies": {

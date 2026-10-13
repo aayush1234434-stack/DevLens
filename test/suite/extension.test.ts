@@ -6,10 +6,33 @@ import { validateMentorReview } from '../../src/mentorReview';
 import { renderPanel } from '../../src/panel';
 import { captureReviewContext, ReviewContext } from '../../src/reviewContext';
 
+function tabLabels(): string {
+	const labels = vscode.window.tabGroups.all.flatMap(group => group.tabs).map(tab => tab.label);
+	return labels.length > 0 ? labels.join(', ') : '(none)';
+}
+
+async function waitForTab(prefix: string): Promise<boolean> {
+	const matches = () => vscode.window.tabGroups.all
+		.flatMap(group => group.tabs)
+		.some(tab => tab.label.startsWith(prefix));
+	if (matches()) return true;
+	return new Promise(resolve => {
+		const subscription = vscode.window.tabGroups.onDidChangeTabs(() => {
+			if (!matches()) return;
+			subscription.dispose();
+			resolve(true);
+		});
+		setTimeout(() => {
+			subscription.dispose();
+			resolve(matches());
+		}, 1500);
+	});
+}
+
 suite('DevLens extension shell', () => {
 	test('activates and contributes both review commands', async () => {
-		const extension = vscode.extensions.getExtension('devlens.devlens');
-		assert.ok(extension, 'DevLens extension should be discoverable');
+		const extension = vscode.extensions.getExtension('AayushSingh1713.devlens');
+		assert.ok(extension, 'DevLens extension should be discoverable as AayushSingh1713.devlens');
 		await extension.activate();
 
 		const commands = await vscode.commands.getCommands(true);
@@ -162,33 +185,24 @@ suite('DevLens extension shell', () => {
 	});
 
 	test('review command opens its panel for an arbitrary language and empty files safely', async () => {
-		const hasReviewPanel = () => vscode.window.tabGroups.all
-			.flatMap(group => group.tabs)
-			.some(tab => tab.label.startsWith('DevLens Review'));
 		const emptyDocument = await vscode.workspace.openTextDocument({ language: 'typescript', content: '' });
 		await vscode.window.showTextDocument(emptyDocument);
 		await vscode.commands.executeCommand('devlens.reviewCurrentFile');
-		assert.ok(hasReviewPanel(), 'Review Current File should open the DevLens panel');
+		assert.ok(await waitForTab('DevLens Review'), `Review Current File should open the DevLens panel. Open tabs: ${tabLabels()}`);
 
 		const pythonDocument = await vscode.workspace.openTextDocument({ language: 'python', content: 'print("hello")' });
 		await vscode.window.showTextDocument(pythonDocument);
 		await vscode.commands.executeCommand('devlens.reviewCurrentFile');
-		assert.ok(hasReviewPanel(), 'Review Current File should open the panel for Python');
+		assert.ok(await waitForTab('DevLens Review'), `Review Current File should open the panel for Python. Open tabs: ${tabLabels()}`);
 	});
 
 	test('skill profile command opens a panel even before enough reviews exist', async () => {
 		await vscode.commands.executeCommand('devlens.openSkillProfile');
-		const hasProfilePanel = vscode.window.tabGroups.all
-			.flatMap(group => group.tabs)
-			.some(tab => tab.label.startsWith('DevLens Skill Profile'));
-		assert.ok(hasProfilePanel, 'Open Skill Profile should open its panel');
+		assert.ok(await waitForTab('DevLens Skill Profile'), `Open Skill Profile should open its panel. Open tabs: ${tabLabels()}`);
 	});
 
 	test('practice queue command opens a panel without review history', async () => {
 		await vscode.commands.executeCommand('devlens.openPracticeQueue');
-		const hasPracticePanel = vscode.window.tabGroups.all
-			.flatMap(group => group.tabs)
-			.some(tab => tab.label.startsWith('DevLens Practice Queue'));
-		assert.ok(hasPracticePanel, 'Open Practice Queue should open its panel');
+		assert.ok(await waitForTab('DevLens Practice Queue'), `Open Practice Queue should open its panel. Open tabs: ${tabLabels()}`);
 	});
 });

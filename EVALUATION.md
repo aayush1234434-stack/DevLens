@@ -17,7 +17,9 @@ These figures are **fixture agreement**, not a field false-positive rate, model 
 | Languages without local adapters | Python/C++/Java correctly produce no guessed local findings | Evaluate consented provider output separately for each language. |
 | Privacy/network | Existing mocked provider and local-only tests pass | Inspect traffic with a real key only after explicit tester consent. |
 
-## Paired mentor-review protocol — pending
+## Paired mentor-review protocol — ready to run, not yet executed
+
+The synthetic 12-case runner is `npm run evaluate:live`. It sends only those fixtures to `https://api.openai.com/v1/responses` and writes `.vscode-test/live-evaluation.json`, which is gitignored. Set `OPENAI_API_KEY` in your own terminal first; do not paste the key into chat or retrieve it from VS Code SecretStorage. The command records evidence acceptance and latency. It does not assign the human scores below, and it was not run in this session because no key was available.
 
 Use at least 12 synthetic code cases spanning JavaScript, TypeScript, Python, and C++ (three each), including straightforward, ambiguous, and no-action cases. For each case, run the same selected code through the same provider/model twice: once with no coaching profile, once with a self-described level, role, goal, and explanation depth. Cover beginner, mid-level, and senior teaching preferences; include current-level and stretch lenses. Confirm every request with the consent dialog and record cost/latency separately. Do not run this protocol with private user code or a real key without its owner's approval.
 
