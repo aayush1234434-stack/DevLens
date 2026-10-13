@@ -229,7 +229,9 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Guaranteeing defect detection or identical quality for every language, exhaustive language-specific local adapters, team features, public launch marketing, and future cloud services not required for release.
 
-**Status:** Planned.
+**Implementation decisions:** Prepare a `0.1.0-beta.1` candidate and mark the Marketplace listing as Preview. Keep the manifest publisher ID provisional until the owner confirms it. Publish only after a separate explicit approval for the exact VSIX. The local fixture suite measures rule/range agreement and prompt payload differences, not live provider usefulness; a blinded paired review and opt-in beta remain gates. A 256×256 PNG icon, license, privacy/support/changelog, and release checklist are prepared. The proposed eight-week beta support window requires owner approval.
+
+**Status:** Release preparation in progress (2026-10-13), not published. TypeScript compilation and 56 unit tests pass, including 12 synthetic release fixtures and four generic/tailored prompt pairs; a conservative shadowed-`eval` fix was added. Official model and Marketplace documentation were checked. An `npm pack` preview contains only compiled JavaScript and intended assets/docs, but it is not a VSIX and cannot confirm the runtime dependency. The installed Extension Host still exits with `SIGABRT` before integration tests; a later compile attempt also stalled on this machine. A prior official VSIX packager installation failed on registry DNS, although the user's Terminal subsequently received an npm registry PONG. The iCloud-dataless Git index was backed up and rebuilt from `HEAD`; `git status` and `git diff --check` now pass, while any original staged state remains unverifiable. Actual VSIX creation, clean install/update/uninstall, accessibility/performance passes, live provider evaluation, beta triage, publisher verification, and Marketplace approval remain open. See `RELEASE_CHECKLIST.md` and `EVALUATION.md` for exact gates.
 
 ## Risks and mitigations
 

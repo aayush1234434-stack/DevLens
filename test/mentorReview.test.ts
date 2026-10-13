@@ -84,7 +84,8 @@ test('consent disclosure names the provider and exact outbound context without f
 	assert.match(disclosure, /target role: Backend engineer/);
 	assert.match(disclosure, /improvement goal: Error handling/);
 	assert.match(disclosure, /review lens: stretch/);
-	assert.match(disclosure, /will not receive the file name, workspace path, other files/);
+	assert.match(disclosure, /does not add the file name, workspace path, other files/);
+	assert.match(disclosure, /store:false, but this is not Zero Data Retention/);
 	assert.doesNotMatch(disclosure, /\/workspace\//);
 
 	const noProfile = buildOpenAIDisclosure({ code: 'x', languageId: 'python', scope: 'selection', truncated: false }, undefined, 'beginner', 'concise', 'test-model');

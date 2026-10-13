@@ -72,6 +72,7 @@ function analyzeJavaScriptOrTypeScript(code: string, languageId: string): LocalF
 	const scriptKind = scriptKinds[languageId];
 	const sourceFile = ts.createSourceFile('review.ts', code, ts.ScriptTarget.Latest, true, scriptKind);
 	const findings: LocalFinding[] = [];
+	const evalMayBeShadowed = hasEvalBindingOrAssignment(sourceFile);
 
 	const visit = (node: ts.Node): void => {
 		if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isArrowFunction(node)) &&
@@ -86,7 +87,7 @@ function analyzeJavaScriptOrTypeScript(code: string, languageId: string): LocalF
 			));
 		}
 
-		if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'eval') {
+		if (!evalMayBeShadowed && ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'eval') {
 			findings.push(createFinding(
 				'javascript.eval-call', 'Review this eval call', 'security', 'risk', code,
 				node.expression.getStart(sourceFile), node.end,
@@ -110,6 +111,25 @@ function analyzeJavaScriptOrTypeScript(code: string, languageId: string): LocalF
 	};
 	visit(sourceFile);
 	return findings;
+}
+
+/** Without type resolution, suppress the eval check if this file could bind or replace that name. */
+function hasEvalBindingOrAssignment(sourceFile: ts.SourceFile): boolean {
+	let found = false;
+	const visit = (node: ts.Node): void => {
+		if (found) return;
+		if (((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isFunctionDeclaration(node) ||
+			ts.isImportClause(node) || ts.isImportSpecifier(node) || ts.isBindingElement(node)) &&
+			node.name && ts.isIdentifier(node.name) && node.name.text === 'eval') ||
+			(ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+				ts.isIdentifier(node.left) && node.left.text === 'eval')) {
+			found = true;
+			return;
+		}
+		ts.forEachChild(node, visit);
+	};
+	visit(sourceFile);
+	return found;
 }
 
 function createFinding(

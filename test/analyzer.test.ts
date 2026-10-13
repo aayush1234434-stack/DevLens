@@ -46,6 +46,11 @@ test('ignores eval text inside strings and comments', () => {
 	assert.equal(analyzeCode('javascript', code).findings.length, 0);
 });
 
+test('does not call a shadowed or reassigned eval identifier the built-in eval risk', () => {
+	assert.deepEqual(analyzeCode('javascript', 'const eval = value => value; eval(userInput);').findings, []);
+	assert.deepEqual(analyzeCode('javascript', 'eval = customParser; eval(userInput);').findings, []);
+});
+
 test('supports TSX syntax and keeps findings in source order with a small cap', () => {
 	const code = [
 		'const View = () => <div />;',

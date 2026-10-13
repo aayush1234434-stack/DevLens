@@ -1,6 +1,8 @@
 # DevLens
 
-DevLens is a VS Code extension for evidence-grounded code feedback, with optional user-approved AI mentoring.
+DevLens is a VS Code extension for evidence-grounded code feedback and an optional, user-controlled practice loop. Local code checks currently cover JavaScript and TypeScript. Optional, user-approved OpenAI reviews can cover other text languages, with quality varying by language and snippet.
+
+This is a beta candidate, not a complete linter or a guarantee of defect detection. DevLens describes patterns in reviewed code, not your ability or job readiness. See [privacy and data handling](PRIVACY.md), [support](SUPPORT.md), and the [changelog](CHANGELOG.md).
 
 ## Run the extension
 

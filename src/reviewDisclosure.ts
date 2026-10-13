@@ -23,7 +23,7 @@ export function buildOpenAIDisclosure(
 	return [
 		`Send this ${clean(model, 80)} review to OpenAI? This may use your OpenAI API credits.`,
 		`OpenAI receives the review context shown in this DevLens panel (${clean(reviewContext.languageId, 80)}, ${reviewContext.code.length} characters${reviewContext.truncated ? ', shortened to DevLens’ 50,000-character limit' : ''}), explanation depth ${clean(level, 40)}, explanation style ${clean(style, 40)}, and ${includedProfile.length ? 'these coaching preferences: ' + includedProfile.map(value => clean(value, 300)).join('; ') : 'no personal coaching profile fields'}.`,
-		'It will not receive the file name, workspace path, other files, or review history. Your API key is stored in VS Code SecretStorage and used only to authenticate the request. OpenAI processes the request under its applicable API data policies; only send code you are allowed to share.'
+		'DevLens does not add the file name, workspace path, other files, or review history. The selected code itself may contain secrets or paths, so inspect it before approving. Your API key is stored in VS Code SecretStorage and used only to authenticate the request. DevLens sets store:false, but this is not Zero Data Retention; OpenAI may keep abuse-monitoring logs under your API account policy. Only send code you are allowed to share.'
 	].join('\n\n');
 }
 

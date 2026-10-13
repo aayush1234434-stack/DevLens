@@ -1,16 +1,31 @@
 {
   "name": "devlens",
   "displayName": "DevLens",
-  "description": "A thoughtful, personalized code review mentor for developers working in any language.",
-  "version": "0.0.1",
+  "description": "Evidence-linked code coaching with local JavaScript/TypeScript checks and optional AI review for other languages.",
+  "version": "0.1.0-beta.1",
   "publisher": "devlens",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aayush1234434-stack/DevLens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aayush1234434-stack/DevLens/issues"
+  },
+  "homepage": "https://github.com/aayush1234434-stack/DevLens",
+  "icon": "media/icon.png",
+  "galleryBanner": {
+    "color": "#071A43",
+    "theme": "dark"
+  },
+  "preview": true,
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
+  "categories": ["Education", "Other"],
+  "keywords": ["code review", "coding mentor", "learning", "feedback", "practice"],
   "main": "./out/src/extension.js",
-  "files": ["out/src", "README.md"],
+  "files": ["out/src/**/*.js", "media/icon.png", "README.md", "LICENSE", "CHANGELOG.md", "PRIVACY.md", "SUPPORT.md"],
   "activationEvents": [
     "onCommand:devlens.reviewCurrentFile",
     "onCommand:devlens.reviewSelection",
@@ -119,7 +134,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/skillProfile.test.js ./out/test/practiceLoop.test.js ./out/test/openAiProvider.test.js",
+    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/skillProfile.test.js ./out/test/practiceLoop.test.js ./out/test/openAiProvider.test.js ./out/test/releaseEvaluation.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
     "vscode:prepublish": "npm run compile"
   },

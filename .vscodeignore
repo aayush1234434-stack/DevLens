@@ -1,0 +1,11 @@
+.git/**
+.vscode/**
+src/**
+test/**
+out/test/**
+**/*.js.map
+*.vsix
+AGENTS.md
+PROJECT_PLAN.md
+EVALUATION.md
+RELEASE_CHECKLIST.md
