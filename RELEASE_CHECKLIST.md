@@ -1,6 +1,6 @@
 # DevLens 0.1.0-beta.1 release checklist
 
-This is a reviewable beta candidate, **not approval to publish**. The `publisher` value in `package.json` is provisional until the owner confirms the Marketplace identity. Never commit credentials or run `vsce publish` without a separate explicit request.
+This is a reviewable beta candidate, **not approval to publish**. The owner supplied `AayushSingh1713` as the publisher ID and it is configured in `package.json`; signed-in Marketplace ownership/authentication still needs verification. Never commit credentials or run `vsce publish` without a separate explicit request.
 
 ## Verified in this workspace (2026-10-13)
 
@@ -16,26 +16,26 @@ This is a reviewable beta candidate, **not approval to publish**. The `publisher
 - [x] In the non-iCloud checkout, `npm run test:unit` passes all 56 tests and compiles the extension; `npm audit --omit=dev --audit-level=high` reports zero vulnerabilities in runtime dependencies.
 - [x] Retest on 2026-10-13: `npm run test:unit` passes all 56 tests; full `npm audit --audit-level=high` reports zero vulnerabilities, including development dependencies.
 - [x] Built `devlens-0.1.0-beta.1.vsix` with `@vscode/vsce` 4.0.0. The archive is 4.4 MB (158 files), includes the compiled entry point and TypeScript runtime dependency, excludes source, tests, source maps, `.gitignore`, and `tsconfig.json`, passes `unzip -t`, and has no matches for common API-key/private-key patterns.
-- [x] Installed the VSIX into fresh isolated VS Code user-data/extensions directories from `/private/tmp`; `--list-extensions --show-versions` recognized `devlens.devlens@0.1.0-beta.1`. A forced reinstall succeeded. CLI uninstall succeeded and removed the extension from the registry; no extension global-storage directory was created. Extension files remained in the isolated extensions directory after uninstall, so cleanup after closing the VS Code process still needs confirmation.
+- [x] The original `devlens.devlens@0.1.0-beta.1` VSIX installed into fresh isolated VS Code directories, was recognized by `--list-extensions`, then uninstalled from the registry. After the owner supplied `AayushSingh1713`, the package was rebuilt and its archive integrity and embedded identity (`AayushSingh1713.devlens@0.1.0-beta.1`) were verified. A new-profile installation attempt for this identity failed with `EMFILE`; its activation and uninstall remain unverified.
 
 ## Must pass before beta distribution
 
 - [x] Build an actual VSIX with the official `@vscode/vsce` CLI and inspect its file list, size, license, icon, compiled entry point, and runtime TypeScript dependency. `npm pack` is not a VSIX substitute. The VSIX artifact is in the repository root; keep it uncommitted because `*.vsix` is ignored.
-- [ ] Confirm the `publisher` ID and unique Marketplace name with the owner. Keep `preview: true` for beta; update version/lockfile together for each build.
-- [ ] Run `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` on the minimum supported VS Code 1.85 and a current Stable build. The host test using installed VS Code 1.141.0 and the available managed 1.140.0 both compile but exit with `SIGABRT` before test results. Determine a working host environment before attributing the abort to DevLens.
+- [ ] Verify the supplied `AayushSingh1713` publisher ID in the signed-in Marketplace publisher portal and choose/review listing branding. Other publishers already use the DevLens display name, so clearly distinguish this listing. Keep `preview: true` for beta; update version/lockfile together for each build.
+- [ ] Run `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` on the minimum supported VS Code 1.85 and a current Stable build. Retested with 1.85.0 (downloaded successfully), 1.140.0, and installed Stable 1.141.0; all extension-host processes exit with `SIGABRT` before test results. Determine a working host environment before attributing the abort to DevLens.
 - [ ] Manually press F5: open Extension Development Host, find all DevLens commands, review a TypeScript function and Python selection, open the skill profile and practice queue, navigate every panel by keyboard, and confirm loading/error/empty states.
-- [ ] Verify installed activation, commands, local-only reviews, settings, secret setup/removal, and no unexpected network traffic in the clean profile. The CLI installed and uninstalled successfully when launched from `/private/tmp`; running it from the project directory caused `EMFILE: too many open files, watch`. The available extension-host test exits with `SIGABRT` before tests, and desktop accessibility could not inspect the window. A forced reinstall of the same version worked, but an upgrade from a previous beta is not yet tested. Confirm extension-file cleanup after process exit and inspect whether local state remains; correct privacy copy if needed.
+- [ ] Verify installed activation, commands, local-only reviews, settings, secret setup/removal, and no unexpected network traffic in the clean profile. The original `devlens.devlens` candidate installed/uninstalled from `/private/tmp`, but a later install attempt for `AayushSingh1713.devlens` failed with `EMFILE: too many open files, watch`. Running from the project directory had also failed with `EMFILE`. The available extension-host test exits with `SIGABRT` before tests, and desktop accessibility could not inspect the window. A forced reinstall of the original same-version package worked; upgrade behavior is not tested. Confirm cleanup after process exit and local-state behavior; correct privacy copy if needed.
 - [ ] Run an accessibility pass with keyboard-only navigation, visible focus, screen-reader announcements, contrast in light/dark themes, and zoom. Test cancellation and a 50,000-character review for responsiveness; note timings and any freeze.
 - [x] Inspect the VSIX for secrets, fixtures, test output, source maps if not intended, `.git`, local paths, and unrelated files. Archive integrity and file-list checks pass; a pattern scan found no common API-key/private-key formats; `git diff --check` passes.
 - [x] Full dependency audit, including development dependencies, passes with zero vulnerabilities (`npm audit --audit-level=high`, 2026-10-13).
 - [x] The working checkout is outside iCloud Drive; continue release work here to avoid recurrence of the dataless-index issue.
-- [ ] Verify the private security-report route in [SUPPORT.md](SUPPORT.md), and have the owner approve or revise the proposed eight-week beta support window.
+- [ ] Verify the private security-report route in [SUPPORT.md](SUPPORT.md), and have the owner approve or revise the proposed eight-week beta support window. The public GitHub API confirms the repository is public but does not expose the private-reporting setting; the available `gh` login token is invalid, so an authenticated owner check is still required.
 
 ## Must pass before Marketplace publication
 
-- [ ] Complete the 12-pair synthetic provider evaluation and two-reviewer scorecard in [EVALUATION.md](EVALUATION.md), then fix or qualify failures. Do not describe prompt differences as proven feedback quality.
+- [ ] Complete the 12-pair live provider evaluation and two-reviewer scorecard in [EVALUATION.md](EVALUATION.md), then fix or qualify failures. The synthetic fixture suite passes, but no live evaluation was run; no API key is available to this process. Do not retrieve or expose a key from VS Code SecretStorage.
 - [ ] Recruit 5–8 opt-in beta testers; triage feedback on specificity, goal relevance, consent clarity, practice return, and false claims. Retest every release-blocking issue.
-- [ ] Confirm publisher ownership and supported authentication method; keep all publishing credentials outside this repository.
+- [ ] Confirm publisher portal access and supported authentication method; keep all publishing credentials outside this repository. Owner supplied `AayushSingh1713`; Marketplace search shows existing extensions using the DevLens display name, so choose a distinctive listing identity.
 - [ ] Review Marketplace listing, 256×256 icon, privacy notice, limitations, version, changelog, and actual packaged files with the owner.
 - [ ] Obtain the owner's separate explicit approval for the exact release candidate and external publish action. Only then run the official publish workflow.
 
