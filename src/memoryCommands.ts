@@ -92,3 +92,8 @@ async function inspectRecord(store: MentorMemoryStore, record: MemoryRecord): Pr
 	const confirmed = await vscode.window.showWarningMessage('Delete this DevLens review record?', { modal: true }, 'Delete record');
 	if (confirmed === 'Delete record') await store.deleteRecord(record.id);
 }
+
+export async function inspectSavedReview(store: MentorMemoryStore, recordId: string): Promise<void> {
+	const record = store.snapshot().records.find(item => item.id === recordId);
+	if (record) await inspectRecord(store, record);
+}

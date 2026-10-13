@@ -23,6 +23,7 @@ suite('DevLens extension shell', () => {
 		assert.ok(commands.includes('devlens.removeOpenAIKey'));
 		assert.ok(commands.includes('devlens.toggleOpenAIReviews'));
 		assert.ok(commands.includes('devlens.manageMentorMemory'));
+		assert.ok(commands.includes('devlens.openSkillProfile'));
 	});
 
 	test('captures exactly the selected source and range', async () => {
@@ -172,5 +173,13 @@ suite('DevLens extension shell', () => {
 		await vscode.window.showTextDocument(pythonDocument);
 		await vscode.commands.executeCommand('devlens.reviewCurrentFile');
 		assert.ok(hasReviewPanel(), 'Review Current File should open the panel for Python');
+	});
+
+	test('skill profile command opens a panel even before enough reviews exist', async () => {
+		await vscode.commands.executeCommand('devlens.openSkillProfile');
+		const hasProfilePanel = vscode.window.tabGroups.all
+			.flatMap(group => group.tabs)
+			.some(tab => tab.label.startsWith('DevLens Skill Profile'));
+		assert.ok(hasProfilePanel, 'Open Skill Profile should open its panel');
 	});
 });

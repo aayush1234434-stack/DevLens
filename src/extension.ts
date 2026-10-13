@@ -13,6 +13,8 @@ import { normalizeOpenAIModel, OpenAIResponsesProvider } from './openAiProvider'
 import { requestMentorReview } from './mentorReviewService';
 import { buildOpenAIDisclosure } from './reviewDisclosure';
 import { captureReviewContext, ReviewContext, ReviewMode } from './reviewContext';
+import { SkillProfilePreferences } from './skillProfile';
+import { SkillProfilePanel } from './skillProfilePanel';
 
 const profileStorageKey = 'devlens.coachingProfile';
 const profileEnabledKey = 'devlens.coachingProfileEnabled';
@@ -21,6 +23,11 @@ const openAiApiKeySecret = 'devlens.openai.apiKey';
 
 export function activate(context: vscode.ExtensionContext): void {
 	const memory = new MentorMemoryStore(context.globalState);
+	const skillProfile = new SkillProfilePanel(
+		memory,
+		new SkillProfilePreferences(context.globalState),
+		() => context.globalState.get<boolean>(profileEnabledKey, true) ? readProfile(context).improvementGoal : ''
+	);
 	void memory.initialize().catch(() => vscode.window.showErrorMessage('DevLens could not migrate local mentor memory.'));
 	context.subscriptions.push(
 		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, memory, 'file')),
@@ -28,13 +35,14 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('devlens.openSettings', () =>
 			vscode.commands.executeCommand('workbench.action.openSettings', '@ext:devlens.devlens')
 		),
-		vscode.commands.registerCommand('devlens.configureCoachingProfile', () => configureCoachingProfile(context, memory)),
-		vscode.commands.registerCommand('devlens.toggleCoachingProfile', () => toggleCoachingProfile(context)),
-		vscode.commands.registerCommand('devlens.clearCoachingProfile', () => clearCoachingProfile(context)),
+		vscode.commands.registerCommand('devlens.configureCoachingProfile', async () => { await configureCoachingProfile(context, memory); skillProfile.refresh(); }),
+		vscode.commands.registerCommand('devlens.toggleCoachingProfile', async () => { await toggleCoachingProfile(context); skillProfile.refresh(); }),
+		vscode.commands.registerCommand('devlens.clearCoachingProfile', async () => { await clearCoachingProfile(context, memory); skillProfile.refresh(); }),
 		vscode.commands.registerCommand('devlens.setOpenAIKey', () => setOpenAIKey(context)),
 		vscode.commands.registerCommand('devlens.removeOpenAIKey', () => removeOpenAIKey(context)),
 		vscode.commands.registerCommand('devlens.toggleOpenAIReviews', () => toggleOpenAIReviews()),
-		vscode.commands.registerCommand('devlens.manageMentorMemory', () => manageMentorMemory(memory, () => changeGoal(context, memory)))
+		vscode.commands.registerCommand('devlens.manageMentorMemory', () => manageMentorMemory(memory, () => changeGoal(context, memory))),
+		vscode.commands.registerCommand('devlens.openSkillProfile', () => skillProfile.open())
 	);
 }
 
@@ -66,6 +74,10 @@ async function review(extensionContext: vscode.ExtensionContext, memory: MentorM
 	};
 	panel = showReviewPanel(panelState, (action, id) => {
 		void (async () => {
+			if (action === 'openSkillProfile') {
+				await vscode.commands.executeCommand('devlens.openSkillProfile');
+				return;
+			}
 			if (action === 'manageMemory') {
 				await vscode.commands.executeCommand('devlens.manageMentorMemory');
 				return;
@@ -341,14 +353,16 @@ async function toggleCoachingProfile(context: vscode.ExtensionContext): Promise<
 	vscode.window.showInformationMessage(`DevLens coaching profile ${enabled ? 'disabled' : 'enabled'} for reviews.`);
 }
 
-async function clearCoachingProfile(context: vscode.ExtensionContext): Promise<void> {
+async function clearCoachingProfile(context: vscode.ExtensionContext, memory: MentorMemoryStore): Promise<void> {
 	const choice = await vscode.window.showWarningMessage(
 		'Clear your locally stored DevLens coaching profile?',
 		{ modal: true },
 		'Clear profile'
 	);
 	if (choice !== 'Clear profile') return;
+	const hadGoal = readProfile(context).improvementGoal.length > 0;
 	await context.globalState.update(profileStorageKey, defaultCoachingProfile);
+	if (hadGoal) await memory.goalChanged();
 	await context.globalState.update(profileEnabledKey, true);
 	await context.globalState.update(profilePromptedKey, true);
 	vscode.window.showInformationMessage('DevLens coaching profile cleared.');

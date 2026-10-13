@@ -143,8 +143,8 @@ export class MentorMemoryStore {
 	}
 
 	async startReview(languageId: string, analysis: AnalysisResult): Promise<string | undefined> {
-	const current = this.snapshot().settings;
-	if (!current.enabled || current.paused) return undefined;
+		const current = this.snapshot().settings;
+		if (!current.enabled || current.paused) return undefined;
 		const id = randomUUID();
 		let saved = false;
 		await this.mutate(snapshot => {
@@ -207,6 +207,14 @@ export class MentorMemoryStore {
 		await this.mutate(snapshot => ({ ...snapshot, records: [] }));
 	}
 
+	async clearCurrentGoal(): Promise<void> {
+		await this.mutate(snapshot => ({
+			...snapshot,
+			settings: { ...snapshot.settings, focusCategories: [], lessCategories: [] },
+			records: snapshot.records.filter(record => record.goalEpoch !== snapshot.settings.goalEpoch)
+		}));
+	}
+
 	private async mutate(change: (snapshot: MemorySnapshot) => MemorySnapshot): Promise<void> {
 		const action = this.pending.then(async () => {
 			const before = this.snapshot();
@@ -267,7 +275,7 @@ function summarizePatterns(records: MemoryRecord[], goalEpoch: string): MemoryPa
 			seen.add(observation.tag);
 			let group = groups.get(observation.tag);
 			if (!group) {
-				group = { tag: observation.tag, label: tagLabel(observation.tag, observation.category), category: observation.category, reviewCount: 0, examples: [] };
+				group = { tag: observation.tag, label: memoryTagLabel(observation.tag, observation.category), category: observation.category, reviewCount: 0, examples: [] };
 				groups.set(observation.tag, group);
 			}
 			group.reviewCount += 1;
@@ -280,9 +288,9 @@ function summarizePatterns(records: MemoryRecord[], goalEpoch: string): MemoryPa
 		.map(group => ({ ...group, examples: group.examples.slice(-3) }));
 }
 
-function tagLabel(tag: string, category: MemoryCategory): string {
+export function memoryTagLabel(tag: string, category: MemoryCategory): string {
 	if (tag.startsWith('local:')) return localTags[tag.slice(6)] ?? category;
-	return `OpenAI ${category} suggestions (broad theme)`;
+	return `OpenAI ${category} ${tag.endsWith(':strength') ? 'strengths' : 'suggestions'} (broad theme)`;
 }
 
 function normalizeSettings(raw: unknown): MemorySettings {

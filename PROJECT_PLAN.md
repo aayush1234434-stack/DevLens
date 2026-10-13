@@ -189,7 +189,9 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Career ranking, benchmarking users against others, public profiles, team dashboards, and gamified streak pressure.
 
-**Status:** Planned.
+**Implementation decisions:** The profile is derived on demand from Phase 5 metadata and stores only a separate versioned visibility/baseline setting. It shows area summaries after three current-goal retained reviews with usable tagged observations; areas with at least two observed reviews receive an earlier-versus-recent count comparison only after four eligible reviews overall. These thresholds are conservative initial choices to revisit during beta. Not-helpful and not-applicable observations are excluded. Each topic lists review date, language, and tag and can open the retained metadata record; no source snippet can be reopened because none was stored. A narrow keyword match may label possibly goal-related areas, but never scores or infers role readiness. Hiding preserves history; resetting starts a reversible profile baseline; clearing current-goal records also removes them from mentor memory after confirmation while earlier-goal records remain.
+
+**Status:** Implemented (2026-10-13). `npm run test:unit` passed TypeScript compilation and all 45 unit tests, including six new skill-profile tests. `npm pack --dry-run --json` passed and listed the new compiled profile modules and extension entry point. `git diff --check` passed. The automated Extension Host test did not reach the test suite because the installed VS Code process exited with `SIGABRT`; interactive F5 and keyboard behavior remain to be verified in a working desktop host.
 
 ### Phase 7 — Practice loop and revisit experience
 

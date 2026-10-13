@@ -27,6 +27,14 @@ On a review card, **Helpful**, **Not helpful**, and **Not applicable** save feed
 
 Use **My goal changed** in the memory menu, or edit your coaching profile goal, to start a fresh focus context. Earlier records remain inspectable but no longer influence current ordering or recurring-theme summaries. You can correct feedback on a card, reset all current-goal focus and feedback, or delete records to remove their influence.
 
+## Evidence-based skill profile
+
+Run **DevLens: Open Skill Profile**, or choose **Open skill profile** in a review panel. The profile is calculated locally from retained mentor-memory records for your current goal. It appears after at least three retained reviews have usable tagged observations. Areas with evidence show strengths and opportunities separately, with counts and date/language examples; **Inspect saved review** opens the corresponding metadata record. DevLens stores no source snippets for these examples, so it cannot reopen the original code. Advice you marked **Not helpful** or **Not applicable** is excluded from the profile.
+
+With at least four reviews containing observations, areas seen in two or more reviews show earlier and recent observation counts. A tag missing from a later review does not prove improvement: review scope, language coverage, and the selected code may differ. Areas without evidence are left unassessed. Familiar words in your stated goal can highlight possibly related areas, but this is only a navigation hint. The profile does not grade your ability or judge role readiness.
+
+The panel lets you **Hide profile**, **Start a new profile baseline** without deleting history, **Include earlier retained reviews** again, or **Delete current-goal review records** after confirmation. That last action also removes those records from mentor memory; records from earlier goals remain. Pausing or turning off memory stops new recording, while previously retained examples remain inspectable. Nothing from the profile is sent to OpenAI or synced by DevLens.
+
 ## Settings
 
 Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:devlens.devlens` to choose explanation depth/style, allow per-review OpenAI consent prompts, and change the OpenAI API model. Manage your coaching profile, mentor memory, and OpenAI key from the Command Palette using the commands above.
@@ -34,7 +42,7 @@ Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:dev
 ## Verify
 
 - `npm run compile` — compile the extension and tests.
-- `npm run test:unit` — verify function-aware capture, local checks, feedback validation, mocked OpenAI requests, consent gating, profile normalization, and local mentor-memory controls without launching VS Code or sending code externally.
+- `npm run test:unit` — verify function-aware capture, local checks, feedback validation, mocked OpenAI requests, consent gating, coaching-profile normalization, mentor-memory controls, and local skill-profile aggregation/rendering without launching VS Code or sending code externally.
 - `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` — run extension-host tests using an installed VS Code build. If the variable is omitted, the test runner downloads a stable VS Code build.
 
 On macOS, the command-line executable path is commonly `/Applications/Visual Studio Code.app/Contents/MacOS/Code`.

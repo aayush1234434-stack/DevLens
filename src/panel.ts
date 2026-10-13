@@ -25,7 +25,7 @@ export type PanelState =
 		observationFeedback?: Readonly<Record<string, MemoryFeedback>>;
 	};
 
-export type PanelAction = 'notApplicable' | 'helpful' | 'notHelpful' | 'focus' | 'less' | 'manageMemory';
+export type PanelAction = 'notApplicable' | 'helpful' | 'notHelpful' | 'focus' | 'less' | 'manageMemory' | 'openSkillProfile';
 
 export function showReviewPanel(state: PanelState, onAction?: (action: PanelAction, id?: string) => void): vscode.WebviewPanel {
 	const panel = vscode.window.createWebviewPanel(
@@ -39,6 +39,7 @@ export function showReviewPanel(state: PanelState, onAction?: (action: PanelActi
 		const messages = panel.webview.onDidReceiveMessage(message => {
 			if (!isRecord(message) || typeof message.action !== 'string') return;
 			if (message.action === 'manageMemory') { onAction('manageMemory'); return; }
+			if (message.action === 'openSkillProfile') { onAction('openSkillProfile'); return; }
 			if (!['notApplicable', 'helpful', 'notHelpful', 'focus', 'less'].includes(message.action) ||
 				typeof message.id !== 'string' || !/^(local-\d+|openai-(strength|suggestion)-\d+)$/.test(message.id)) return;
 			onAction(message.action as PanelAction, message.id);
@@ -206,7 +207,8 @@ function renderMemory(memory: MemorySnapshot | undefined): string {
 <p class="meta">When on, DevLens saves dates, language IDs, finding tags and your feedback locally. It saves no code, excerpts, filenames or keys. Focus, less and feedback reorder relevant cards in later reviews; paused memory neither saves nor adapts. No memory is sent to OpenAI.</p>
 ${settings.enabled ? `<p>Focus: ${settings.focusCategories.map(escapeHtml).join(', ') || 'none'} · Show less: ${settings.lessCategories.map(escapeHtml).join(', ') || 'none'}</p>` : ''}
 ${settings.enabled ? examples : ''}
-<button type="button" data-action="manageMemory">Manage memory</button></section>`;
+<button type="button" data-action="manageMemory">Manage memory</button>
+<button type="button" data-action="openSkillProfile">Open skill profile</button></section>`;
 }
 
 function renderCoachingProfile(profile: CoachingProfile, enabled: boolean): string {
