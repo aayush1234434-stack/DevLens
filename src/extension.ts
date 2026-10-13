@@ -15,6 +15,8 @@ import { buildOpenAIDisclosure } from './reviewDisclosure';
 import { captureReviewContext, ReviewContext, ReviewMode } from './reviewContext';
 import { SkillProfilePreferences } from './skillProfile';
 import { SkillProfilePanel } from './skillProfilePanel';
+import { practiceCandidateFromReview, PracticeStore } from './practiceLoop';
+import { PracticePanel } from './practicePanel';
 
 const profileStorageKey = 'devlens.coachingProfile';
 const profileEnabledKey = 'devlens.coachingProfileEnabled';
@@ -23,6 +25,8 @@ const openAiApiKeySecret = 'devlens.openai.apiKey';
 
 export function activate(context: vscode.ExtensionContext): void {
 	const memory = new MentorMemoryStore(context.globalState);
+	const practice = new PracticeStore(context.globalState);
+	const practicePanel = new PracticePanel(practice, memory);
 	const skillProfile = new SkillProfilePanel(
 		memory,
 		new SkillProfilePreferences(context.globalState),
@@ -30,8 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 	void memory.initialize().catch(() => vscode.window.showErrorMessage('DevLens could not migrate local mentor memory.'));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, memory, 'file')),
-		vscode.commands.registerCommand('devlens.reviewSelection', () => review(context, memory, 'selection')),
+		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, memory, practice, 'file')),
+		vscode.commands.registerCommand('devlens.reviewSelection', () => review(context, memory, practice, 'selection')),
 		vscode.commands.registerCommand('devlens.openSettings', () =>
 			vscode.commands.executeCommand('workbench.action.openSettings', '@ext:devlens.devlens')
 		),
@@ -42,11 +46,12 @@ export function activate(context: vscode.ExtensionContext): void {
 		vscode.commands.registerCommand('devlens.removeOpenAIKey', () => removeOpenAIKey(context)),
 		vscode.commands.registerCommand('devlens.toggleOpenAIReviews', () => toggleOpenAIReviews()),
 		vscode.commands.registerCommand('devlens.manageMentorMemory', () => manageMentorMemory(memory, () => changeGoal(context, memory))),
-		vscode.commands.registerCommand('devlens.openSkillProfile', () => skillProfile.open())
+		vscode.commands.registerCommand('devlens.openSkillProfile', () => skillProfile.open()),
+		vscode.commands.registerCommand('devlens.openPracticeQueue', () => practicePanel.open())
 	);
 }
 
-async function review(extensionContext: vscode.ExtensionContext, memory: MentorMemoryStore, mode: ReviewMode): Promise<void> {
+async function review(extensionContext: vscode.ExtensionContext, memory: MentorMemoryStore, practice: PracticeStore, mode: ReviewMode): Promise<void> {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) {
 		showReviewPanel({ kind: 'error', message: 'Open a code or text file before starting a review.' });
@@ -74,6 +79,10 @@ async function review(extensionContext: vscode.ExtensionContext, memory: MentorM
 	};
 	panel = showReviewPanel(panelState, (action, id) => {
 		void (async () => {
+			if (action === 'openPracticeQueue') {
+				await vscode.commands.executeCommand('devlens.openPracticeQueue');
+				return;
+			}
 			if (action === 'openSkillProfile') {
 				await vscode.commands.executeCommand('devlens.openSkillProfile');
 				return;
@@ -83,6 +92,27 @@ async function review(extensionContext: vscode.ExtensionContext, memory: MentorM
 				return;
 			}
 			if (!id || panelState.kind !== 'ready') return;
+			if (action === 'practice') {
+				if (dismissed.has(id)) return;
+				const match = practiceCandidateFromReview(panelState.analysis, panelState.mentorReview, id,
+					panelState.context.languageId, memory.snapshot().settings.goalEpoch, recordId);
+				if (!match) return;
+				const goal = panelState.profileEnabled ? panelState.coachingProfile.improvementGoal : '';
+				const choice = await vscode.window.showInformationMessage(
+					`Practice “${match.title}”${goal ? ` toward your goal “${goal}”` : ' as a general improvement concept'}? DevLens saves only a concept tag, category, language, date, and optional review ID locally. No code, excerpt, or goal text is saved. Add it only if it matters to you.`,
+					{ modal: true }, 'Save practice card'
+				);
+				if (choice !== 'Save practice card') return;
+				const added = await practice.add(match.candidate);
+				if (added === 'full') {
+					vscode.window.showInformationMessage('The practice queue is full. Complete or delete an open card, or delete an older saved card.');
+				} else if (added === 'invalid') {
+					vscode.window.showErrorMessage('This suggestion cannot be saved as a practice card.');
+				} else {
+					await vscode.commands.executeCommand('devlens.openPracticeQueue');
+				}
+				return;
+			}
 			const local = panelState.analysis.findings.map((finding, index) => ({ id: `local-${index}`, category: finding.category }));
 			const remote = [...(panelState.mentorReview?.strengths ?? []), ...(panelState.mentorReview?.suggestions ?? [])];
 			const observation = [...local, ...remote].find(item => item.id === id);

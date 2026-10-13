@@ -209,7 +209,9 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Full curriculum or course platform, quizzes requiring a server, streak mechanics, peer competition, coaching notifications, and automatic source-code edits.
 
-**Status:** Planned.
+**Implementation decisions:** The user explicitly chooses a grounded suggestion as relevant to their current goal; the practice card stores only validated concept metadata in a separate versioned local key. Up to three active/paused cards and 25 total cards are allowed, with explicit deletion when full. Exercises are deterministic, category/tag-based, and vary with the explanation-depth setting; they never use retained source. Comparisons use later, opted-in review metadata with the same goal epoch and language ID. A tag seen once is a single later observation; at least two matching reviews are required for recurrence. A missing tag is reported only after two later reviews with usable tags and is never labeled improvement or mastery. Provider tags remain broad themes. Completing, dismissing, or deleting a practice card never edits mentor history; pausing mentor memory stops new comparison records but not practice controls.
+
+**Status:** Implemented (2026-10-13). `npm run test:unit` passed TypeScript compilation and all 52 unit tests, including seven practice-loop tests. `npm pack --dry-run --json` passed and listed the three compiled practice modules. `git diff --check` passed. The automated Extension Host run compiled but failed before test execution because the installed VS Code process exited with `SIGABRT`; interactive F5, keyboard navigation, and command-panel behavior remain to be verified in a working desktop host.
 
 ### Phase 8 — Evaluation, privacy review, beta, and Marketplace release
 

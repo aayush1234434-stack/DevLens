@@ -22,7 +22,8 @@
     "onCommand:devlens.removeOpenAIKey",
     "onCommand:devlens.toggleOpenAIReviews",
     "onCommand:devlens.manageMentorMemory",
-    "onCommand:devlens.openSkillProfile"
+    "onCommand:devlens.openSkillProfile",
+    "onCommand:devlens.openPracticeQueue"
   ],
   "contributes": {
     "commands": [
@@ -80,6 +81,11 @@
         "command": "devlens.openSkillProfile",
         "title": "DevLens: Open Skill Profile",
         "category": "DevLens"
+      },
+      {
+        "command": "devlens.openPracticeQueue",
+        "title": "DevLens: Open Practice Queue",
+        "category": "DevLens"
       }
     ],
     "configuration": {
@@ -113,7 +119,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/skillProfile.test.js ./out/test/openAiProvider.test.js",
+    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/skillProfile.test.js ./out/test/practiceLoop.test.js ./out/test/openAiProvider.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
     "vscode:prepublish": "npm run compile"
   },

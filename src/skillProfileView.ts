@@ -94,6 +94,7 @@ ${button('hide', 'Hide profile')}
 ${button('reset', 'Start a new profile baseline')}
 ${profile.startAfter ? button('restore', 'Include earlier retained reviews') : ''}
 ${button('clear', 'Delete current-goal review records')}
+${button('practiceQueue', 'Open practice queue')}
 ${button('manageMemory', 'Manage mentor memory')}
 </div>`;
 }

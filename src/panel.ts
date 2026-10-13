@@ -25,7 +25,8 @@ export type PanelState =
 		observationFeedback?: Readonly<Record<string, MemoryFeedback>>;
 	};
 
-export type PanelAction = 'notApplicable' | 'helpful' | 'notHelpful' | 'focus' | 'less' | 'manageMemory' | 'openSkillProfile';
+export type PanelAction = 'notApplicable' | 'helpful' | 'notHelpful' | 'focus' | 'less' | 'practice' |
+	'manageMemory' | 'openSkillProfile' | 'openPracticeQueue';
 
 export function showReviewPanel(state: PanelState, onAction?: (action: PanelAction, id?: string) => void): vscode.WebviewPanel {
 	const panel = vscode.window.createWebviewPanel(
@@ -40,7 +41,8 @@ export function showReviewPanel(state: PanelState, onAction?: (action: PanelActi
 			if (!isRecord(message) || typeof message.action !== 'string') return;
 			if (message.action === 'manageMemory') { onAction('manageMemory'); return; }
 			if (message.action === 'openSkillProfile') { onAction('openSkillProfile'); return; }
-			if (!['notApplicable', 'helpful', 'notHelpful', 'focus', 'less'].includes(message.action) ||
+			if (message.action === 'openPracticeQueue') { onAction('openPracticeQueue'); return; }
+			if (!['notApplicable', 'helpful', 'notHelpful', 'focus', 'less', 'practice'].includes(message.action) ||
 				typeof message.id !== 'string' || !/^(local-\d+|openai-(strength|suggestion)-\d+)$/.test(message.id)) return;
 			onAction(message.action as PanelAction, message.id);
 		});
@@ -92,6 +94,7 @@ h2 { font-size: 1rem; font-weight: 600; margin: 0 0 .5rem; }
 .provider { margin: 1rem 0; padding: .9rem; border: 1px solid var(--vscode-panel-border); border-radius: 4px; }
 .finding button, .memory button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; padding: .4rem .75rem; cursor: pointer; margin: .35rem .35rem .1rem 0; }
 .finding button:hover, .memory button:hover { background: var(--vscode-button-hoverBackground); }
+.finding button:focus-visible, .memory button:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
 .finding details { margin-top: .5rem; }
 .finding summary { margin-top: .4rem; }
 .memory { margin: 1rem 0; padding: .8rem; border: 1px solid var(--vscode-panel-border); border-radius: 4px; }
@@ -141,7 +144,7 @@ function renderMentorObservation(item: MentorObservation, lineOffset: number, st
 <details><summary>Why this?</summary><p>${escapeHtml(item.whyThis)}</p></details>
 <p class="meta">Evidence · line ${item.evidence.startLine + lineOffset + 1}${item.evidence.endLine > item.evidence.startLine ? `–${item.evidence.endLine + lineOffset + 1}` : ''}</p>
 <pre><code>${escapeHtml(item.evidence.text)}</code></pre>
-${renderFeedbackControls(item.id, item.category, state)}
+${renderFeedbackControls(item.id, item.category, state, item.kind === 'suggestion')}
 </article>`;
 }
 
@@ -175,11 +178,11 @@ function renderFindings(findings: AnalysisResult['findings'], lineOffset: number
 <p><strong>${finding.kind === 'strength' ? 'Build on this:' : 'One way to improve:'}</strong> ${escapeHtml(finding.improve)}</p>
 <p class="meta">Evidence · line ${finding.evidence.startLine + lineOffset + 1}${finding.evidence.endLine > finding.evidence.startLine ? `–${finding.evidence.endLine + lineOffset + 1}` : ''}</p>
 <pre><code>${escapeHtml(finding.evidence.text)}</code></pre>
-${state ? renderFeedbackControls(id, finding.category, state) : ''}
+${state ? renderFeedbackControls(id, finding.category, state, finding.kind !== 'strength') : ''}
 </article>`).join('\n');
 }
 
-function renderFeedbackControls(id: string, category: string, state: Extract<PanelState, { kind: 'ready' }>): string {
+function renderFeedbackControls(id: string, category: string, state: Extract<PanelState, { kind: 'ready' }>, practiceEligible: boolean): string {
 	const active = state.memory?.settings.enabled && !state.memory.settings.paused;
 	const current = state.observationFeedback?.[id];
 	const button = (action: PanelAction, label: string) =>
@@ -187,6 +190,7 @@ function renderFeedbackControls(id: string, category: string, state: Extract<Pan
 	return `<div aria-label="Feedback for ${escapeHtml(category)} observation">
 ${current ? `<p class="meta" role="status">Saved feedback: ${escapeHtml(feedbackLabel(current))}. You can change it.</p>` : ''}
 ${active ? `${button('helpful', 'Helpful')}${button('notHelpful', 'Not helpful')}${button('focus', 'Focus on this')}${button('less', 'Show me less')}` : ''}
+${practiceEligible ? button('practice', 'Practice this') : ''}
 ${button('notApplicable', 'Not applicable')}
 </div>`;
 }
@@ -208,7 +212,8 @@ function renderMemory(memory: MemorySnapshot | undefined): string {
 ${settings.enabled ? `<p>Focus: ${settings.focusCategories.map(escapeHtml).join(', ') || 'none'} · Show less: ${settings.lessCategories.map(escapeHtml).join(', ') || 'none'}</p>` : ''}
 ${settings.enabled ? examples : ''}
 <button type="button" data-action="manageMemory">Manage memory</button>
-<button type="button" data-action="openSkillProfile">Open skill profile</button></section>`;
+<button type="button" data-action="openSkillProfile">Open skill profile</button>
+<button type="button" data-action="openPracticeQueue">Open practice queue</button></section>`;
 }
 
 function renderCoachingProfile(profile: CoachingProfile, enabled: boolean): string {

@@ -5,7 +5,7 @@ import { MentorMemoryStore } from './mentorMemory';
 import { buildSkillProfile, SkillProfilePreferences } from './skillProfile';
 import { renderSkillProfileHtml } from './skillProfileView';
 
-type ProfileAction = 'show' | 'hide' | 'reset' | 'restore' | 'clear' | 'inspect' | 'manageMemory';
+type ProfileAction = 'show' | 'hide' | 'reset' | 'restore' | 'clear' | 'inspect' | 'manageMemory' | 'practiceQueue';
 
 export class SkillProfilePanel {
 	private panel: vscode.WebviewPanel | undefined;
@@ -52,7 +52,7 @@ export class SkillProfilePanel {
 
 	private async handleMessage(raw: unknown): Promise<void> {
 		if (!isRecord(raw) || typeof raw.action !== 'string' ||
-			!['show', 'hide', 'reset', 'restore', 'clear', 'inspect', 'manageMemory'].includes(raw.action)) return;
+			!['show', 'hide', 'reset', 'restore', 'clear', 'inspect', 'manageMemory', 'practiceQueue'].includes(raw.action)) return;
 		const action = raw.action as ProfileAction;
 		if (action === 'show' || action === 'hide') {
 			await this.preferences.setHidden(action === 'hide');
@@ -72,6 +72,8 @@ export class SkillProfilePanel {
 			await inspectSavedReview(this.memory, raw.recordId);
 		} else if (action === 'manageMemory') {
 			await vscode.commands.executeCommand('devlens.manageMentorMemory');
+		} else if (action === 'practiceQueue') {
+			await vscode.commands.executeCommand('devlens.openPracticeQueue');
 		}
 		this.refresh();
 	}

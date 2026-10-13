@@ -35,6 +35,12 @@ With at least four reviews containing observations, areas seen in two or more re
 
 The panel lets you **Hide profile**, **Start a new profile baseline** without deleting history, **Include earlier retained reviews** again, or **Delete current-goal review records** after confirmation. That last action also removes those records from mentor memory; records from earlier goals remain. Pausing or turning off memory stops new recording, while previously retained examples remain inspectable. Nothing from the profile is sent to OpenAI or synced by DevLens.
 
+## Practice and revisit
+
+On an evidence-linked suggestion, choose **Practice this** and confirm it is relevant to your goal. DevLens saves a local practice card with only the concept tag, category, language, dates, and an optional saved-review ID—not source code, excerpts, goal text, or an AI-generated lesson. Open cards appear in **DevLens: Open Practice Queue** (also linked from reviews and the skill profile). You can keep up to three active or paused concepts and 25 cards total; complete or delete a card to make room. Each card has a short, deterministic exercise and self-check based on its category and your explanation-depth setting. It is a prompt to practice, not an assessment.
+
+Use **Mark practiced**, **Pause**, **Resume**, **Complete**, **Not relevant**, or **Delete card** at your own pace. The queue also offers **Review selected code again**. When mentor memory is enabled, later retained reviews in the same language and goal context contribute exact-tag comparison counts and inspectable date/language examples. One later sighting is not called recurrence; two or more are. A missing tag, even across several reviews, is not proof of improvement or mastery. Provider tags represent broad themes rather than the exact same code issue. Pausing memory does not disable practice actions, but it stops new comparison examples. Deleting a mentor-memory record removes it from comparisons; deleting a practice card does not delete review history. **Delete all practice cards** clears this separate local queue.
+
 ## Settings
 
 Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:devlens.devlens` to choose explanation depth/style, allow per-review OpenAI consent prompts, and change the OpenAI API model. Manage your coaching profile, mentor memory, and OpenAI key from the Command Palette using the commands above.
@@ -42,7 +48,7 @@ Run **DevLens: Open Settings** or open VS Code Settings and search for `@ext:dev
 ## Verify
 
 - `npm run compile` — compile the extension and tests.
-- `npm run test:unit` — verify function-aware capture, local checks, feedback validation, mocked OpenAI requests, consent gating, coaching-profile normalization, mentor-memory controls, and local skill-profile aggregation/rendering without launching VS Code or sending code externally.
+- `npm run test:unit` — verify function-aware capture, local checks, feedback validation, mocked OpenAI requests, consent gating, coaching-profile normalization, mentor-memory controls, skill-profile aggregation, and practice lifecycle/comparison without launching VS Code or sending code externally.
 - `VSCODE_EXECUTABLE_PATH="/path/to/Code" npm test` — run extension-host tests using an installed VS Code build. If the variable is omitted, the test runner downloads a stable VS Code build.
 
 On macOS, the command-line executable path is commonly `/Applications/Visual Studio Code.app/Contents/MacOS/Code`.

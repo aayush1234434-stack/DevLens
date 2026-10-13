@@ -24,6 +24,7 @@ suite('DevLens extension shell', () => {
 		assert.ok(commands.includes('devlens.toggleOpenAIReviews'));
 		assert.ok(commands.includes('devlens.manageMentorMemory'));
 		assert.ok(commands.includes('devlens.openSkillProfile'));
+		assert.ok(commands.includes('devlens.openPracticeQueue'));
 	});
 
 	test('captures exactly the selected source and range', async () => {
@@ -181,5 +182,13 @@ suite('DevLens extension shell', () => {
 			.flatMap(group => group.tabs)
 			.some(tab => tab.label.startsWith('DevLens Skill Profile'));
 		assert.ok(hasProfilePanel, 'Open Skill Profile should open its panel');
+	});
+
+	test('practice queue command opens a panel without review history', async () => {
+		await vscode.commands.executeCommand('devlens.openPracticeQueue');
+		const hasPracticePanel = vscode.window.tabGroups.all
+			.flatMap(group => group.tabs)
+			.some(tab => tab.label.startsWith('DevLens Practice Queue'));
+		assert.ok(hasPracticePanel, 'Open Practice Queue should open its panel');
 	});
 });
