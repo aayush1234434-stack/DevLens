@@ -7,6 +7,8 @@ import {
 	normalizeCoachingProfile
 } from './coachingProfile';
 import { PanelState, renderPanel, showReviewPanel } from './panel';
+import { categoryPriority, MemoryFeedback, MentorMemoryStore, prioritizeByMemory } from './mentorMemory';
+import { manageMentorMemory } from './memoryCommands';
 import { normalizeOpenAIModel, OpenAIResponsesProvider } from './openAiProvider';
 import { requestMentorReview } from './mentorReviewService';
 import { buildOpenAIDisclosure } from './reviewDisclosure';
@@ -18,48 +20,74 @@ const profilePromptedKey = 'devlens.coachingProfilePrompted';
 const openAiApiKeySecret = 'devlens.openai.apiKey';
 
 export function activate(context: vscode.ExtensionContext): void {
+	const memory = new MentorMemoryStore(context.globalState);
+	void memory.initialize().catch(() => vscode.window.showErrorMessage('DevLens could not migrate local mentor memory.'));
 	context.subscriptions.push(
-		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, 'file')),
-		vscode.commands.registerCommand('devlens.reviewSelection', () => review(context, 'selection')),
+		vscode.commands.registerCommand('devlens.reviewCurrentFile', () => review(context, memory, 'file')),
+		vscode.commands.registerCommand('devlens.reviewSelection', () => review(context, memory, 'selection')),
 		vscode.commands.registerCommand('devlens.openSettings', () =>
 			vscode.commands.executeCommand('workbench.action.openSettings', '@ext:devlens.devlens')
 		),
-		vscode.commands.registerCommand('devlens.configureCoachingProfile', () => configureCoachingProfile(context)),
+		vscode.commands.registerCommand('devlens.configureCoachingProfile', () => configureCoachingProfile(context, memory)),
 		vscode.commands.registerCommand('devlens.toggleCoachingProfile', () => toggleCoachingProfile(context)),
 		vscode.commands.registerCommand('devlens.clearCoachingProfile', () => clearCoachingProfile(context)),
 		vscode.commands.registerCommand('devlens.setOpenAIKey', () => setOpenAIKey(context)),
 		vscode.commands.registerCommand('devlens.removeOpenAIKey', () => removeOpenAIKey(context)),
-		vscode.commands.registerCommand('devlens.toggleOpenAIReviews', () => toggleOpenAIReviews())
+		vscode.commands.registerCommand('devlens.toggleOpenAIReviews', () => toggleOpenAIReviews()),
+		vscode.commands.registerCommand('devlens.manageMentorMemory', () => manageMentorMemory(memory, () => changeGoal(context, memory)))
 	);
 }
 
-async function review(extensionContext: vscode.ExtensionContext, mode: ReviewMode): Promise<void> {
+async function review(extensionContext: vscode.ExtensionContext, memory: MentorMemoryStore, mode: ReviewMode): Promise<void> {
 	const editor = vscode.window.activeTextEditor;
 	if (!editor) {
 		showReviewPanel({ kind: 'error', message: 'Open a code or text file before starting a review.' });
 		return;
 	}
 
-	await offerProfileSetup(extensionContext);
+	await offerProfileSetup(extensionContext, memory);
 	const profile = readProfile(extensionContext);
 	const profileEnabled = extensionContext.globalState.get<boolean>(profileEnabledKey, true);
 	let panelState: PanelState = { kind: 'loading', message: 'Preparing code for review…' };
 	const dismissed = new Set<string>();
+	let recordId: string | undefined;
 	let panel!: vscode.WebviewPanel;
 	const updatePanel = (next: PanelState) => {
-		panelState = next.kind === 'ready' ? { ...next, dismissedObservationIds: [...dismissed] } : next;
+		const snapshot = memory.snapshot();
+		const record = snapshot.records.find(item => item.id === recordId);
+		const observationFeedback = Object.fromEntries(
+			(record?.observations ?? []).filter(item => item.feedback).map(item => [item.id, item.feedback])
+		) as Record<string, MemoryFeedback>;
+		panelState = next.kind === 'ready'
+			? { ...next, memory: snapshot, observationFeedback, dismissedObservationIds: [...dismissed] }
+			: next;
 		panel.title = panelState.kind === 'error' ? 'DevLens Review · Needs attention' : 'DevLens Review';
 		panel.webview.html = renderPanel(panelState);
 	};
-	panel = showReviewPanel(panelState, id => {
-		const known = panelState.kind === 'ready' &&
-			[...(panelState.mentorReview?.strengths ?? []), ...(panelState.mentorReview?.suggestions ?? [])]
-				.some(observation => observation.id === id);
-		if (!known) return false;
-		dismissed.add(id);
-		updatePanel(panelState);
-		return true;
+	panel = showReviewPanel(panelState, (action, id) => {
+		void (async () => {
+			if (action === 'manageMemory') {
+				await vscode.commands.executeCommand('devlens.manageMentorMemory');
+				return;
+			}
+			if (!id || panelState.kind !== 'ready') return;
+			const local = panelState.analysis.findings.map((finding, index) => ({ id: `local-${index}`, category: finding.category }));
+			const remote = [...(panelState.mentorReview?.strengths ?? []), ...(panelState.mentorReview?.suggestions ?? [])];
+			const observation = [...local, ...remote].find(item => item.id === id);
+			if (!observation) return;
+			if (action === 'notApplicable') {
+				dismissed.add(id);
+				await memory.setFeedback(recordId, id, 'notApplicable');
+			} else if (action === 'helpful' || action === 'notHelpful') {
+				await memory.setFeedback(recordId, id, action);
+			} else if (action === 'focus' || action === 'less') {
+				await memory.setPreference(observation.category, action);
+			}
+			updatePanel(panelState);
+		})().catch(() => vscode.window.showErrorMessage('DevLens could not update mentor memory. No review source was saved.'));
 	});
+	const unsubscribe = memory.onDidChange(() => { if (panelState.kind === 'ready') updatePanel(panelState); });
+	panel.onDidDispose(unsubscribe);
 	const result = await vscode.window.withProgress(
 		{ location: vscode.ProgressLocation.Notification, title: 'Preparing DevLens review', cancellable: true },
 		async (progress, token) => {
@@ -78,14 +106,16 @@ async function review(extensionContext: vscode.ExtensionContext, mode: ReviewMod
 		return;
 	}
 
-	const analysis = analyzeCode(result.context.languageId, result.context.code);
+	const analysis = analyzeCode(result.context.languageId, result.context.code,
+		category => categoryPriority(memory.snapshot(), category));
+	recordId = await memory.startReview(result.context.languageId, analysis);
 	panelState = {
 		kind: 'ready', context: result.context, analysis, coachingProfile: profile, profileEnabled,
 		providerStatus: 'disabled', dismissedObservationIds: []
 	};
 	updatePanel(panelState);
 	if (vscode.workspace.getConfiguration('devlens').get<boolean>('allowOpenAIReview', false)) {
-		await reviewWithOpenAI(extensionContext, result.context, profile, profileEnabled, analysis, updatePanel);
+		await reviewWithOpenAI(extensionContext, result.context, profile, profileEnabled, analysis, memory, recordId, updatePanel);
 	}
 }
 
@@ -95,6 +125,8 @@ async function reviewWithOpenAI(
 	profile: CoachingProfile,
 	profileEnabled: boolean,
 	analysis: ReturnType<typeof analyzeCode>,
+	memory: MentorMemoryStore,
+	recordId: string | undefined,
 	updatePanel: (state: PanelState) => void
 ): Promise<void> {
 	const apiKey = await context.secrets.get(openAiApiKeySecret);
@@ -160,10 +192,17 @@ async function reviewWithOpenAI(
 			}
 		);
 		if (!mentorReview) throw new Error('No remote review was requested. Your local findings are still available.');
+		await memory.appendProviderReview(recordId, mentorReview);
+		const snapshot = memory.snapshot();
+		const orderedReview = {
+			...mentorReview,
+			strengths: prioritizeByMemory(mentorReview.strengths, snapshot),
+			suggestions: prioritizeByMemory(mentorReview.suggestions, snapshot)
+		};
 		updatePanel({
 			kind: 'ready', context: reviewContext, analysis, coachingProfile: profile, profileEnabled,
-			providerStatus: 'completed', mentorReview,
-			providerMessage: 'OpenAI-assisted suggestions were checked against exact source excerpts. You can mark advice not applicable for this review.'
+			providerStatus: 'completed', mentorReview: orderedReview,
+			providerMessage: 'OpenAI-assisted suggestions were checked against exact source excerpts. You can give feedback on each card.'
 		});
 	} catch (error) {
 		updatePanel({
@@ -213,7 +252,7 @@ async function removeOpenAIKey(context: vscode.ExtensionContext): Promise<void> 
 	vscode.window.showInformationMessage('DevLens OpenAI API key removed.');
 }
 
-async function offerProfileSetup(context: vscode.ExtensionContext): Promise<void> {
+async function offerProfileSetup(context: vscode.ExtensionContext, memory: MentorMemoryStore): Promise<void> {
 	if (context.globalState.get<boolean>(profilePromptedKey, false)) return;
 	await context.globalState.update(profilePromptedKey, true);
 	if (hasCoachingProfile(readProfile(context))) return;
@@ -221,10 +260,10 @@ async function offerProfileSetup(context: vscode.ExtensionContext): Promise<void
 		'Tell DevLens what kind of coaching you want. You can skip this and change it any time.',
 		'Set up profile',
 		'Skip for now'
-	).then(choice => choice === 'Set up profile' ? configureCoachingProfile(context) : undefined);
+	).then(choice => choice === 'Set up profile' ? configureCoachingProfile(context, memory) : undefined);
 }
 
-async function configureCoachingProfile(context: vscode.ExtensionContext): Promise<void> {
+async function configureCoachingProfile(context: vscode.ExtensionContext, memory: MentorMemoryStore): Promise<void> {
 	const current = readProfile(context);
 	const level = await vscode.window.showQuickPick([
 		{ label: 'Beginner', value: 'beginner' as const, description: 'More foundational explanations and smaller steps.' },
@@ -275,9 +314,25 @@ async function configureCoachingProfile(context: vscode.ExtensionContext): Promi
 		reviewLens: lens.value
 	});
 	await context.globalState.update(profileStorageKey, profile);
+	if (profile.improvementGoal !== current.improvementGoal) await memory.goalChanged();
 	await context.globalState.update(profileEnabledKey, true);
 	await context.globalState.update(profilePromptedKey, true);
 	vscode.window.showInformationMessage('DevLens coaching profile saved locally. You can edit or clear it from the Command Palette.');
+}
+
+async function changeGoal(context: vscode.ExtensionContext, memory: MentorMemoryStore): Promise<void> {
+	const current = readProfile(context);
+	const improvementGoal = await vscode.window.showInputBox({
+		prompt: 'What is your current improvement goal? Changing it starts a fresh mentor-memory focus context; old records remain inspectable.',
+		value: current.improvementGoal,
+		validateInput: value => value.length > 240 ? 'Keep this to 240 characters or fewer.' : undefined
+	});
+	if (improvementGoal === undefined) return;
+	const next = normalizeCoachingProfile({ ...current, improvementGoal });
+	if (next.improvementGoal === current.improvementGoal) return;
+	await context.globalState.update(profileStorageKey, next);
+	await memory.goalChanged();
+	vscode.window.showInformationMessage('DevLens goal updated. Earlier review records remain available, but no longer influence current focus.');
 }
 
 async function toggleCoachingProfile(context: vscode.ExtensionContext): Promise<void> {

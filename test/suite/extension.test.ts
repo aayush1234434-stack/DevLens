@@ -22,6 +22,7 @@ suite('DevLens extension shell', () => {
 		assert.ok(commands.includes('devlens.setOpenAIKey'));
 		assert.ok(commands.includes('devlens.removeOpenAIKey'));
 		assert.ok(commands.includes('devlens.toggleOpenAIReviews'));
+		assert.ok(commands.includes('devlens.manageMentorMemory'));
 	});
 
 	test('captures exactly the selected source and range', async () => {
@@ -107,7 +108,7 @@ suite('DevLens extension shell', () => {
 		assert.match(html, /OpenAI mentor review/);
 		assert.match(html, /Why this\?/);
 		assert.match(html, /Not applicable/);
-		assert.match(html, /data-not-applicable="openai-suggestion-0"/);
+		assert.match(html, /data-action="notApplicable" data-id="openai-suggestion-0"/);
 		assert.match(html, /&lt;script&gt;unsafe&lt;\/script&gt;/);
 		assert.doesNotMatch(html, /<script>unsafe<\/script>/);
 		assert.match(html, /script-src 'nonce-/);

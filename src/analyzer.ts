@@ -50,7 +50,7 @@ const jsTsAdapter: LanguageAdapter = {
 const adapters: readonly LanguageAdapter[] = [jsTsAdapter];
 
 /** Deterministic local checks. Unsupported languages deliberately receive no guessed findings. */
-export function analyzeCode(languageId: string, code: string): AnalysisResult {
+export function analyzeCode(languageId: string, code: string, categoryPriority?: (category: FindingCategory) => number): AnalysisResult {
 	const adapter = adapters.find(candidate => candidate.languageIds.includes(languageId));
 	if (!adapter || code.trim().length === 0) {
 		return { adapter: 'generic', findings: [] };
@@ -60,7 +60,9 @@ export function analyzeCode(languageId: string, code: string): AnalysisResult {
 		.filter(finding => isValidFinding(code, finding))
 		.filter((finding, index, all) => all.findIndex(other => other.id === finding.id &&
 			other.evidence.startOffset === finding.evidence.startOffset) === index)
-		.sort((left, right) => left.evidence.startOffset - right.evidence.startOffset)
+		.sort((left, right) =>
+			(categoryPriority?.(right.category) ?? 0) - (categoryPriority?.(left.category) ?? 0) ||
+			left.evidence.startOffset - right.evidence.startOffset)
 		.slice(0, maxFindings);
 
 	return { adapter: 'javascript-typescript', findings };

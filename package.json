@@ -10,6 +10,7 @@
   },
   "categories": ["Other"],
   "main": "./out/src/extension.js",
+  "files": ["out/src", "README.md"],
   "activationEvents": [
     "onCommand:devlens.reviewCurrentFile",
     "onCommand:devlens.reviewSelection",
@@ -19,7 +20,8 @@
     "onCommand:devlens.clearCoachingProfile",
     "onCommand:devlens.setOpenAIKey",
     "onCommand:devlens.removeOpenAIKey",
-    "onCommand:devlens.toggleOpenAIReviews"
+    "onCommand:devlens.toggleOpenAIReviews",
+    "onCommand:devlens.manageMentorMemory"
   ],
   "contributes": {
     "commands": [
@@ -67,6 +69,11 @@
         "command": "devlens.toggleOpenAIReviews",
         "title": "DevLens: Toggle OpenAI Reviews",
         "category": "DevLens"
+      },
+      {
+        "command": "devlens.manageMentorMemory",
+        "title": "DevLens: Manage Mentor Memory",
+        "category": "DevLens"
       }
     ],
     "configuration": {
@@ -100,7 +107,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/openAiProvider.test.js",
+    "test:unit": "npm run compile && node --test ./out/test/analyzer.test.js ./out/test/capture.test.js ./out/test/coachingProfile.test.js ./out/test/mentorReview.test.js ./out/test/mentorMemory.test.js ./out/test/openAiProvider.test.js",
     "test": "npm run compile && node ./out/test/runTest.js",
     "vscode:prepublish": "npm run compile"
   },

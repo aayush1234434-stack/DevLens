@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { AnalysisResult } from './analyzer';
 import { CoachingProfile } from './coachingProfile';
 import { MentorObservation, MentorReview } from './mentorReview';
+import { MemoryFeedback, MemorySnapshot } from './mentorMemory';
 import { ReviewContext } from './reviewContext';
 
 export type ProviderStatus = 'disabled' | 'not-configured' | 'declined' | 'pending' | 'completed' | 'failed';
@@ -20,9 +21,13 @@ export type PanelState =
 		providerMessage?: string;
 		providerStatus?: ProviderStatus;
 		dismissedObservationIds?: readonly string[];
+		memory?: MemorySnapshot;
+		observationFeedback?: Readonly<Record<string, MemoryFeedback>>;
 	};
 
-export function showReviewPanel(state: PanelState, onNotApplicable?: (id: string) => boolean): vscode.WebviewPanel {
+export type PanelAction = 'notApplicable' | 'helpful' | 'notHelpful' | 'focus' | 'less' | 'manageMemory';
+
+export function showReviewPanel(state: PanelState, onAction?: (action: PanelAction, id?: string) => void): vscode.WebviewPanel {
 	const panel = vscode.window.createWebviewPanel(
 		'devlens.review',
 		'DevLens Review',
@@ -30,10 +35,13 @@ export function showReviewPanel(state: PanelState, onNotApplicable?: (id: string
 		{ enableScripts: true, retainContextWhenHidden: false }
 	);
 	panel.webview.html = renderPanel(state);
-	if (onNotApplicable) {
+	if (onAction) {
 		const messages = panel.webview.onDidReceiveMessage(message => {
-			if (!isRecord(message) || message.action !== 'notApplicable' || typeof message.id !== 'string') return;
-			if (/^openai-(strength|suggestion)-\d+$/.test(message.id)) onNotApplicable(message.id);
+			if (!isRecord(message) || typeof message.action !== 'string') return;
+			if (message.action === 'manageMemory') { onAction('manageMemory'); return; }
+			if (!['notApplicable', 'helpful', 'notHelpful', 'focus', 'less'].includes(message.action) ||
+				typeof message.id !== 'string' || !/^(local-\d+|openai-(strength|suggestion)-\d+)$/.test(message.id)) return;
+			onAction(message.action as PanelAction, message.id);
 		});
 		panel.onDidDispose(() => messages.dispose());
 	}
@@ -47,8 +55,9 @@ export function renderPanel(state: PanelState): string {
 		: state.kind === 'error'
 			? `<p class="status error" role="alert">${escapeHtml(state.message)}</p>`
 			: `<p class="status" role="status">${analysisSummary(state.analysis, state.context.languageId)}</p>
-${renderFindings(state.analysis.findings, state.context.startLine)}
+${renderFindings(state.analysis.findings, state.context.startLine, state)}
 ${renderProviderReview(state)}
+${renderMemory(state.memory)}
 <section class="coaching" aria-labelledby="coaching-heading">
 <h2 id="coaching-heading">Coaching context</h2>
 ${renderCoachingProfile(state.coachingProfile, state.profileEnabled)}
@@ -80,10 +89,11 @@ h2 { font-size: 1rem; font-weight: 600; margin: 0 0 .5rem; }
 .finding pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: .5rem 0; padding: .65rem; }
 .badge { color: var(--vscode-descriptionForeground); font-size: .85rem; }
 .provider { margin: 1rem 0; padding: .9rem; border: 1px solid var(--vscode-panel-border); border-radius: 4px; }
-.provider button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; padding: .4rem .75rem; cursor: pointer; }
-.provider button:hover { background: var(--vscode-button-hoverBackground); }
-.provider details { margin-top: .5rem; }
-.provider summary, .provider button { margin-top: .4rem; }
+.finding button, .memory button { color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 0; padding: .4rem .75rem; cursor: pointer; margin: .35rem .35rem .1rem 0; }
+.finding button:hover, .memory button:hover { background: var(--vscode-button-hoverBackground); }
+.finding details { margin-top: .5rem; }
+.finding summary { margin-top: .4rem; }
+.memory { margin: 1rem 0; padding: .8rem; border: 1px solid var(--vscode-panel-border); border-radius: 4px; }
 pre { overflow: auto; padding: 1rem; background: var(--vscode-textCodeBlock-background); }
 code { font-family: var(--vscode-editor-font-family); white-space: pre; }
 </style>
@@ -95,8 +105,8 @@ ${body}
 const vscode = acquireVsCodeApi();
 document.addEventListener('click', event => {
   if (!(event.target instanceof Element)) return;
-  const button = event.target.closest('[data-not-applicable]');
-  if (button) vscode.postMessage({ action: 'notApplicable', id: button.dataset.notApplicable });
+  const button = event.target.closest('[data-action]');
+  if (button) vscode.postMessage({ action: button.dataset.action, id: button.dataset.id });
 });
 </script>
 </body>
@@ -107,7 +117,7 @@ function renderProviderReview(state: Extract<PanelState, { kind: 'ready' }>): st
 	const dismissedCount = state.dismissedObservationIds?.length ?? 0;
 	const visible = allMentorObservations(state.mentorReview)
 		.filter(item => !(state.dismissedObservationIds ?? []).includes(item.id));
-	const items = visible.map(item => renderMentorObservation(item, state.context.startLine)).join('\n');
+	const items = visible.map(item => renderMentorObservation(item, state.context.startLine, state)).join('\n');
 	const status = state.providerMessage
 		? `<p class="status ${state.providerStatus === 'failed' ? 'error' : ''}" role="${state.providerStatus === 'failed' ? 'alert' : 'status'}">${escapeHtml(state.providerMessage)}</p>`
 		: '';
@@ -117,10 +127,10 @@ function renderProviderReview(state: Extract<PanelState, { kind: 'ready' }>): st
 		: '';
 	return `<section class="provider" aria-labelledby="provider-heading"><h2 id="provider-heading">OpenAI mentor review</h2>
 <p class="badge">OpenAI-assisted · Evidence checked against this source · Not a substitute for tests or security review</p>
-${status}${dismissedCount > 0 ? `<p class="meta" role="status">${dismissedCount} item${dismissedCount === 1 ? '' : 's'} marked not applicable for this review only; nothing was saved.</p>` : ''}${items}${takeaway}</section>`;
+${status}${dismissedCount > 0 ? `<p class="meta" role="status">${dismissedCount} item${dismissedCount === 1 ? '' : 's'} hidden from this panel.</p>` : ''}${items}${takeaway}</section>`;
 }
 
-function renderMentorObservation(item: MentorObservation, lineOffset: number): string {
+function renderMentorObservation(item: MentorObservation, lineOffset: number, state: Extract<PanelState, { kind: 'ready' }>): string {
 	return `<article class="finding" aria-labelledby="${escapeHtml(item.id)}">
 <h2 id="${escapeHtml(item.id)}">${escapeHtml(item.title)}</h2>
 <p class="badge">${escapeHtml(item.category)} · ${escapeHtml(item.kind)} · ${escapeHtml(item.confidence)} confidence · OpenAI-assisted</p>
@@ -130,7 +140,7 @@ function renderMentorObservation(item: MentorObservation, lineOffset: number): s
 <details><summary>Why this?</summary><p>${escapeHtml(item.whyThis)}</p></details>
 <p class="meta">Evidence · line ${item.evidence.startLine + lineOffset + 1}${item.evidence.endLine > item.evidence.startLine ? `–${item.evidence.endLine + lineOffset + 1}` : ''}</p>
 <pre><code>${escapeHtml(item.evidence.text)}</code></pre>
-<button type="button" data-not-applicable="${escapeHtml(item.id)}">Not applicable</button>
+${renderFeedbackControls(item.id, item.category, state)}
 </article>`;
 }
 
@@ -152,17 +162,51 @@ function analysisSummary(analysis: AnalysisResult, languageId: string): string {
 	return 'No findings matched DevLens’ current high-confidence checks. This does not mean the code is issue-free; the local checks are intentionally limited.';
 }
 
-function renderFindings(findings: AnalysisResult['findings'], lineOffset: number): string {
+function renderFindings(findings: AnalysisResult['findings'], lineOffset: number, state?: Extract<PanelState, { kind: 'ready' }>): string {
 	if (findings.length === 0) return '';
-	return findings.map(finding => `<article class="finding" aria-labelledby="finding-${escapeHtml(finding.id)}">
-<h2 id="finding-${escapeHtml(finding.id)}">${escapeHtml(finding.title)}</h2>
+	return findings.map((finding, index) => ({ finding, id: `local-${index}` }))
+		.filter(item => !(state?.dismissedObservationIds ?? []).includes(item.id))
+		.map(({ finding, id }) => `<article class="finding" aria-labelledby="finding-${escapeHtml(id)}">
+<h2 id="finding-${escapeHtml(id)}">${escapeHtml(finding.title)}</h2>
 <p class="badge">${escapeHtml(finding.category)} · ${escapeHtml(finding.kind)} · High confidence · Local check</p>
 <p><strong>What:</strong> ${escapeHtml(finding.what)}</p>
 <p><strong>Why it matters:</strong> ${escapeHtml(finding.why)}</p>
 <p><strong>${finding.kind === 'strength' ? 'Build on this:' : 'One way to improve:'}</strong> ${escapeHtml(finding.improve)}</p>
 <p class="meta">Evidence · line ${finding.evidence.startLine + lineOffset + 1}${finding.evidence.endLine > finding.evidence.startLine ? `–${finding.evidence.endLine + lineOffset + 1}` : ''}</p>
 <pre><code>${escapeHtml(finding.evidence.text)}</code></pre>
+${state ? renderFeedbackControls(id, finding.category, state) : ''}
 </article>`).join('\n');
+}
+
+function renderFeedbackControls(id: string, category: string, state: Extract<PanelState, { kind: 'ready' }>): string {
+	const active = state.memory?.settings.enabled && !state.memory.settings.paused;
+	const current = state.observationFeedback?.[id];
+	const button = (action: PanelAction, label: string) =>
+		`<button type="button" data-action="${action}" data-id="${escapeHtml(id)}">${label}</button>`;
+	return `<div aria-label="Feedback for ${escapeHtml(category)} observation">
+${current ? `<p class="meta" role="status">Saved feedback: ${escapeHtml(feedbackLabel(current))}. You can change it.</p>` : ''}
+${active ? `${button('helpful', 'Helpful')}${button('notHelpful', 'Not helpful')}${button('focus', 'Focus on this')}${button('less', 'Show me less')}` : ''}
+${button('notApplicable', 'Not applicable')}
+</div>`;
+}
+
+function feedbackLabel(value: MemoryFeedback): string {
+	return value === 'notHelpful' ? 'Not helpful' : value === 'notApplicable' ? 'Not applicable' : 'Helpful';
+}
+
+function renderMemory(memory: MemorySnapshot | undefined): string {
+	if (!memory) return '';
+	const { settings, records, patterns } = memory;
+	const status = !settings.enabled ? 'Off by default' : settings.paused ? 'Paused' : 'On';
+	const examples = patterns.length ? `<ul>${patterns.map(pattern =>
+		`<li>${escapeHtml(pattern.label)}: seen in ${pattern.reviewCount} retained reviews; recent examples: ${pattern.examples.map(example => `${escapeHtml(example.date)} (${escapeHtml(example.languageId)})`).join(', ')}. This is a pattern in reviewed samples, not a measure of ability.</li>`
+	).join('')}</ul>` : '<p>No recurring themes from two or more retained reviews for the current goal yet.</p>';
+	return `<section class="memory" aria-labelledby="memory-heading"><h2 id="memory-heading">Mentor memory</h2>
+<p>Status: ${status} · ${records.length} retained review${records.length === 1 ? '' : 's'} · limit ${settings.retentionLimit}.</p>
+<p class="meta">When on, DevLens saves dates, language IDs, finding tags and your feedback locally. It saves no code, excerpts, filenames or keys. Focus, less and feedback reorder relevant cards in later reviews; paused memory neither saves nor adapts. No memory is sent to OpenAI.</p>
+${settings.enabled ? `<p>Focus: ${settings.focusCategories.map(escapeHtml).join(', ') || 'none'} · Show less: ${settings.lessCategories.map(escapeHtml).join(', ') || 'none'}</p>` : ''}
+${settings.enabled ? examples : ''}
+<button type="button" data-action="manageMemory">Manage memory</button></section>`;
 }
 
 function renderCoachingProfile(profile: CoachingProfile, enabled: boolean): string {

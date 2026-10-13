@@ -169,7 +169,9 @@ Each phase is a reviewable increment. Before implementation, inspect the reposit
 
 **Explicitly out of scope:** Cloud sync, account system, team analytics, social sharing, behavioral advertising, and automatic code edits.
 
-**Status:** Planned.
+**Implementation decisions:** Memory is stored in separate versioned VS Code global-state keys for settings and retained review records. It is off by default and is not registered for Settings Sync. Records contain only a date, safe language ID, stable local-rule or broad provider-category tag, strength/suggestion kind, and explicit feedback; no source, excerpt, filename, profile text, or key is retained. The default limit is 25 reviews (configurable 1–100). Focus and less choices plus saved helpful/not-helpful/not-applicable feedback reorder later cards. Pausing stops recording and adaptation. Recurrence requires the same tag in two retained reviews for the current goal, shows counts and metadata examples, and is explicitly qualified as sampled code rather than an ability assessment. Changing the goal starts a new focus epoch while preserving old inspectable records. A version-0 metadata shape can migrate through a strict allowlist; unsupported versions are ignored.
+
+**Status:** Implemented (2026-10-13). The final `tsc -p . --noEmit --pretty false` typecheck passed; all 39 unit tests passed against the emitted JavaScript; `npm pack --dry-run --json` confirmed the compiled extension entry point is present; `git diff --check` passed. An earlier `npm run compile` passed, but the final `npm run test:unit` command failed during its compile step because this workspace timed out reading the TypeScript standard library and writing source maps. Extension Host smoke verification failed before test execution because the installed Code process terminated with `SIGABRT`; interactive F5 remains unverified here.
 
 ### Phase 6 — Evidence-based skill profile
 
